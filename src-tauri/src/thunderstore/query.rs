@@ -61,22 +61,26 @@ pub async fn query_loop(app: AppHandle) -> Result<()> {
     const INTERVAL: Duration = Duration::from_millis(500);
 
     loop {
-        {
+        let mods = {
+            let manager = app.lock_manager();
             let mut thunderstore = app.lock_thunderstore();
 
-            if let Some(args) = &thunderstore.current_query {
-                let manager = app.lock_manager();
-
+            thunderstore.current_query.clone().map(|args| {
                 let mods =
-                    query_frontend_mods(args, thunderstore.latest(), manager.active_profile());
-                app.emit("mod_query_result", &mods)?;
+                    query_frontend_mods(&args, thunderstore.latest(), manager.active_profile());
 
                 if thunderstore.packages_fetched {
                     info!("all packages fetched, pausing query loop");
                     thunderstore.current_query = None;
                 }
-            }
+
+                mods
+            })
         };
+
+        if let Some(mods) = mods {
+            app.emit("mod_query_result", &mods)?;
+        }
 
         tokio::time::sleep(INTERVAL).await;
     }

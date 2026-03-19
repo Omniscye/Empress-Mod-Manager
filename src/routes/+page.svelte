@@ -190,6 +190,11 @@
 			return;
 		}
 
+		if (profiles.active.modCount === 0) {
+			summary = emptyQuery;
+			return;
+		}
+
 		refreshingSummary = true;
 
 		try {

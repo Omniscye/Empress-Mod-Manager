@@ -217,6 +217,13 @@
 			return;
 		}
 
+		if (profiles.active.modCount === 0) {
+			intel = emptyQuery;
+			error = null;
+			loading = false;
+			return;
+		}
+
 		const ticket = ++refreshCounter;
 		loading = true;
 

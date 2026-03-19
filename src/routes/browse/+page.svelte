@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { beforeNavigate } from '$app/navigation';
 	import * as api from '$lib/api';
 	import { brand } from '$lib/brand';
 	import ModDetails from '$lib/components/mod-list/ModDetails.svelte';
@@ -154,6 +155,10 @@
 		modQuery.current.sortBy = sortBy;
 		modQuery.current.sortOrder = 'descending';
 	}
+
+	beforeNavigate(() => {
+		api.thunderstore.stopQuerying();
+	});
 
 	$effect(() => {
 		if (maxCount > 0) {

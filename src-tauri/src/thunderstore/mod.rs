@@ -30,8 +30,8 @@ pub use ident::*;
 
 pub fn start(app: &AppHandle) {
     query::setup(app);
-    app.lock_thunderstore()
-        .switch_game(app.lock_manager().active_game, app.clone());
+    let game = app.lock_manager().active_game;
+    app.lock_thunderstore().switch_game(game, app.clone());
 }
 
 /// A pair of a package and one of its versions.
