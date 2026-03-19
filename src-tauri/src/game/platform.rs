@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::{AsRefStr, EnumIter};
@@ -20,7 +22,7 @@ pub enum Platform {
 pub struct Steam<'a> {
     pub id: u32,
     #[serde(default)]
-    pub dir_name: Option<&'a str>,
+    pub dir_name: Option<Cow<'a, str>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

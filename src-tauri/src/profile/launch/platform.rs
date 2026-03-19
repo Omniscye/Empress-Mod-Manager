@@ -340,7 +340,7 @@ fn steam_dir_name_candidates(game: Game, steam: &Steam<'_>) -> Vec<String> {
     let mut names: Vec<String> = Vec::new();
 
     for candidate in [
-        steam.dir_name,
+        steam.dir_name.as_deref(),
         Some(game.r2_dir_name.as_ref()),
         Some(game.name),
         Some(game.slug.as_ref()),
