@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Empress Mod Manager mark</title>
+  <desc id="desc">A sharp red and blue sigil with a crowned E at the center.</desc>
+  <defs>
+    <linearGradient id="bg" x1="18" y1="12" x2="112" y2="116" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#040812"/>
+      <stop offset="1" stop-color="#14060d"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="20" y1="18" x2="108" y2="110" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#60a5fa"/>
+      <stop offset="0.52" stop-color="#1d4ed8"/>
+      <stop offset="1" stop-color="#ef4444"/>
+    </linearGradient>
+    <linearGradient id="core" x1="30" y1="24" x2="98" y2="100" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f87171"/>
+      <stop offset="0.48" stop-color="#ef4444"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect x="10" y="10" width="108" height="108" rx="28" fill="url(#bg)"/>
+  <path
+    d="M64 14 104 36v56l-40 22-40-22V36Zm0 10-31 17v46l31 17 31-17V41Z"
+    fill="none"
+    stroke="url(#edge)"
+    stroke-width="4.5"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M43 28 52 44l12-10 12 10 9-16-13 3-8-9-8 9Z"
+    fill="#93c5fd"
+    opacity="0.95"
+  />
+  <path
+    d="M42 46h46v10H55v11h25v10H55v11h35v10H42Z"
+    fill="url(#core)"
+    filter="url(#glow)"
+  />
+  <path
+    d="M31 96h66"
+    stroke="#60a5fa"
+    stroke-opacity="0.45"
+    stroke-width="3"
+    stroke-linecap="round"
+  />
+</svg>
