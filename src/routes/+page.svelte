@@ -434,7 +434,7 @@
 	<title>Empress Arsenal | Empress Mod Manager</title>
 </svelte:head>
 
-<div class="flex grow overflow-hidden">
+<div class="min-w-0 flex grow overflow-hidden">
 	<div class="flex w-[60%] grow flex-col overflow-hidden pt-3 pl-3">
 		<section class="empress-card empress-card-accent mr-4 mb-3 rounded-[1.5rem] p-5">
 			<div class="flex flex-wrap items-start justify-between gap-4">

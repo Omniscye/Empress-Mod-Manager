@@ -37,7 +37,7 @@
 </script>
 
 <nav
-	class="border-primary-700/70 bg-primary-950/70 relative flex w-[88px] shrink-0 flex-col items-center gap-1.5 border-r px-3 py-4 backdrop-blur-xl"
+	class="border-primary-700/70 bg-primary-950/70 relative z-20 flex w-[88px] shrink-0 flex-col items-center gap-1.5 border-r px-3 py-4 backdrop-blur-xl"
 >
 	<a
 		href="/ops"

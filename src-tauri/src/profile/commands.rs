@@ -166,15 +166,25 @@ fn build_profile_query(
     include_updates: bool,
 ) -> Result<ProfileQuery> {
     let manager = app.lock_manager();
-    let thunderstore = app.lock_thunderstore();
-    let install_queue = app.install_queue().handle();
-
     let profile = manager.active_profile();
-
-    let (mods, unknown_mods) = profile.query_mods(&args, &thunderstore);
     let total_mod_count = profile.mods.len();
 
+    if total_mod_count == 0 {
+        return Ok(ProfileQuery {
+            mods: Vec::new(),
+            total_mod_count: 0,
+            updates: Vec::new(),
+            unknown_mods: Vec::new(),
+        });
+    }
+
+    let thunderstore = app.lock_thunderstore();
+
+    let (mods, unknown_mods) = profile.query_mods(&args, &thunderstore);
+
     let updates = if include_updates {
+        let install_queue = app.install_queue().handle();
+
         profile
             .mods
             .iter()

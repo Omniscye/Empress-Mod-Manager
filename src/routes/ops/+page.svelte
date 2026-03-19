@@ -22,6 +22,8 @@
 	import { ModType, type Mod, type ProfileQuery } from '$lib/types';
 	import { isOutdated, shortenNum, timeSince } from '$lib/util';
 
+	const OPS_QUERY_TIMEOUT_MS = 4000;
+
 	type PriorityEntry = {
 		mod: Mod;
 		reasons: string[];
@@ -71,6 +73,23 @@
 	let tagInput = $state('');
 	let loadedVaultScope = $state<{ gameSlug: string; profileId: number } | null>(null);
 	let refreshCounter = 0;
+
+	function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
+		return new Promise<T>((resolve, reject) => {
+			const timer = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+
+			promise.then(
+				(value) => {
+					window.clearTimeout(timer);
+					resolve(value);
+				},
+				(reason) => {
+					window.clearTimeout(timer);
+					reject(reason);
+				}
+			);
+		});
+	}
 
 	function currentVaultScope(): EmpressVaultScope {
 		return {
@@ -228,18 +247,24 @@
 		loading = true;
 
 		try {
-			const result = await api.profile.querySummary({
-				searchTerm: '',
-				includeCategories: [],
-				excludeCategories: [],
-				includeNsfw: true,
-				includeDeprecated: true,
-				includeDisabled: true,
-				includeEnabled: true,
-				sortBy: 'installDate',
-				sortOrder: 'descending',
-				maxCount: 5000
-			});
+			api.thunderstore.stopQuerying();
+
+			const result = await withTimeout(
+				api.profile.querySummary({
+					searchTerm: '',
+					includeCategories: [],
+					excludeCategories: [],
+					includeNsfw: true,
+					includeDeprecated: true,
+					includeDisabled: true,
+					includeEnabled: true,
+					sortBy: 'installDate',
+					sortOrder: 'descending',
+					maxCount: 5000
+				}),
+				OPS_QUERY_TIMEOUT_MS,
+				'Ops intel timed out. Leave the page and reopen Ops if you need another scan.'
+			);
 
 			if (ticket !== refreshCounter) return;
 
@@ -349,7 +374,7 @@
 	<title>Empress Ops | Empress Mod Manager</title>
 </svelte:head>
 
-<div class="flex grow overflow-auto px-5 py-4">
+<div class="min-w-0 flex grow overflow-auto px-5 py-4">
 	<div class="mx-auto flex w-full max-w-7xl flex-col gap-4">
 		<section
 			class="empress-card empress-card-accent grid gap-4 rounded-[1.75rem] p-6 lg:grid-cols-[1.4fr_0.9fr]"
