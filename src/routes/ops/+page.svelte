@@ -229,25 +229,21 @@
 	}
 
 	async function refreshIntel() {
-		if (profiles.active === null) {
-			intel = emptyQuery;
-			error = null;
-			loading = false;
-			return;
-		}
-
-		if (profiles.active.modCount === 0) {
-			intel = emptyQuery;
-			error = null;
-			loading = false;
-			return;
-		}
-
 		const ticket = ++refreshCounter;
+		const activeProfile = profiles.active;
+		const activeModCount = activeProfile?.modCount ?? 0;
+
+		if (activeProfile === null || activeModCount === 0) {
+			intel = emptyQuery;
+			error = null;
+			loading = false;
+			return;
+		}
+
 		loading = true;
 
 		try {
-			api.thunderstore.stopQuerying();
+			void api.thunderstore.stopQuerying();
 
 			const result = await withTimeout(
 				api.profile.querySummary({
@@ -299,6 +295,7 @@
 
 	$effect(() => {
 		profiles.activeId;
+		profiles.active?.modCount;
 		games.active?.slug;
 		loadVault();
 		refreshIntel();
@@ -374,7 +371,7 @@
 	<title>Empress Ops | Empress Mod Manager</title>
 </svelte:head>
 
-<div class="min-w-0 flex grow overflow-auto px-5 py-4">
+<div class="min-w-0 overflow-x-hidden overflow-y-auto px-5 py-4">
 	<div class="mx-auto flex w-full max-w-7xl flex-col gap-4">
 		<section
 			class="empress-card empress-card-accent grid gap-4 rounded-[1.75rem] p-6 lg:grid-cols-[1.4fr_0.9fr]"

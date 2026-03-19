@@ -69,7 +69,7 @@
 		<Menubar />
 		<Toolbar />
 
-		<div class="relative flex grow overflow-hidden">
+		<div class="relative grid grow grid-cols-[88px_minmax(0,1fr)] overflow-hidden">
 			<Navbar />
 
 			{@render children?.()}

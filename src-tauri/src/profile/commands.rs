@@ -151,13 +151,23 @@ pub struct ProfileQuery {
 }
 
 #[command]
-pub fn query_profile(args: QueryModsArgs, app: AppHandle) -> Result<ProfileQuery> {
-    build_profile_query(args, app, true)
+pub async fn query_profile(args: QueryModsArgs, app: AppHandle) -> Result<ProfileQuery> {
+    run_profile_query(args, app, true).await
 }
 
 #[command]
-pub fn query_profile_summary(args: QueryModsArgs, app: AppHandle) -> Result<ProfileQuery> {
-    build_profile_query(args, app, false)
+pub async fn query_profile_summary(args: QueryModsArgs, app: AppHandle) -> Result<ProfileQuery> {
+    run_profile_query(args, app, false).await
+}
+
+async fn run_profile_query(
+    args: QueryModsArgs,
+    app: AppHandle,
+    include_updates: bool,
+) -> Result<ProfileQuery> {
+    tauri::async_runtime::spawn_blocking(move || build_profile_query(args, app, include_updates))
+        .await
+        .map_err(|err| eyre!("profile query task failed: {err}"))?
 }
 
 fn build_profile_query(

@@ -154,6 +154,8 @@
 	let hasRefreshed = $state(false);
 	let refreshing = false;
 	let refreshingSummary = false;
+	let refreshToken = 0;
+	let summaryRefreshToken = 0;
 
 	function currentVaultScope() {
 		return {
@@ -167,11 +169,26 @@
 	}
 
 	async function refresh() {
+		const ticket = ++refreshToken;
+		const activeProfile = profiles.active;
+		const activeModCount = activeProfile?.modCount ?? 0;
+
+		if (activeProfile === null || activeModCount === 0) {
+			mods = [];
+			totalModCount = 0;
+			unknownMods = [];
+			updates = [];
+			hasRefreshed = true;
+			return;
+		}
+
 		if (refreshing) return;
 		refreshing = true;
 
 		try {
 			const result = await api.profile.query({ ...profileQuery.current, maxCount });
+
+			if (ticket !== refreshToken) return;
 
 			mods = result.mods;
 			totalModCount = result.totalModCount;
@@ -184,21 +201,22 @@
 	}
 
 	async function refreshSummary() {
+		const ticket = ++summaryRefreshToken;
+		const activeProfile = profiles.active;
+		const activeModCount = activeProfile?.modCount ?? 0;
+
+		if (activeProfile === null || activeModCount === 0) {
+			summary = emptyQuery;
+			return;
+		}
+
 		if (refreshingSummary) return;
-		if (profiles.active === null) {
-			summary = emptyQuery;
-			return;
-		}
-
-		if (profiles.active.modCount === 0) {
-			summary = emptyQuery;
-			return;
-		}
-
 		refreshingSummary = true;
 
 		try {
-			summary = await api.profile.querySummary({
+			void api.thunderstore.stopQuerying();
+
+			const result = await api.profile.querySummary({
 				searchTerm: '',
 				includeCategories: [],
 				excludeCategories: [],
@@ -210,6 +228,10 @@
 				sortOrder: 'descending',
 				maxCount: 5000
 			});
+
+			if (ticket !== summaryRefreshToken) return;
+
+			summary = result;
 		} finally {
 			refreshingSummary = false;
 		}
@@ -355,14 +377,16 @@
 
 	$effect(() => {
 		if (maxCount > 0) {
-			profiles.active;
+			profiles.activeId;
+			profiles.active?.modCount;
 			profileQuery.current;
 			refresh();
 		}
 	});
 
 	$effect(() => {
-		profiles.active;
+		profiles.activeId;
+		profiles.active?.modCount;
 		refreshSummary();
 	});
 
@@ -434,7 +458,7 @@
 	<title>Empress Arsenal | Empress Mod Manager</title>
 </svelte:head>
 
-<div class="min-w-0 flex grow overflow-hidden">
+<div class="min-w-0 h-full overflow-hidden">
 	<div class="flex w-[60%] grow flex-col overflow-hidden pt-3 pl-3">
 		<section class="empress-card empress-card-accent mr-4 mb-3 rounded-[1.5rem] p-5">
 			<div class="flex flex-wrap items-start justify-between gap-4">
