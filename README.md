@@ -1,6 +1,8 @@
 # Empress Mod Manager
 
-Empress Mod Manager is a dark red-blue Thunderstore mod manager with an Empress Ops Center fork built from Gale and reworked into an Empress-themed desktop app.
+Empress Mod Manager is a dark red-blue Thunderstore mod manager with an Empress Ops Center, Empress branding, and its own desktop identity.
+
+It began from the GPL-licensed Gale codebase and is being pushed into a more distinct Empress-first direction.
 
 ## What Empress Adds
 
@@ -8,14 +10,14 @@ Empress Mod Manager is a dark red-blue Thunderstore mod manager with an Empress 
 - Rust-side app identity updates for the Empress fork
 - Full Empress branding across the desktop app
 - A darker red-and-blue visual theme with refreshed desktop icons
-- Gale-hosted updater and profile sync disabled so this fork does not depend on Gale's infrastructure
+- Hosted updater and profile sync disabled so this fork does not depend on upstream infrastructure
 
 More detail lives in [EMPRESS_CHANGES.md](./EMPRESS_CHANGES.md).
 
 ## Current Status
 
 - Windows desktop builds are working
-- Legacy `gale://` deep links are still accepted for compatibility
+- Legacy `gale://` deep links are still accepted for compatibility with older links
 - Auto-update is intentionally disabled
 - Hosted sync is intentionally disabled until Empress has its own backend
 

@@ -196,7 +196,7 @@
 				},
 				{
 					text: m.menuBar_help_item_2(),
-					onclick: () => shellOpen(brand.communityUrl)
+					onclick: () => shellOpen(brand.issuesUrl)
 				},
 				{
 					text: m.menuBar_help_item_3(),

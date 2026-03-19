@@ -175,7 +175,7 @@
 	async function copyLink() {
 		if (!syncInfo) return;
 
-		let url = `https://gale.kesomannen.com/api/desktop/profile/sync/clone/${syncInfo.id}`;
+		let url = `empress://profile/sync/clone/${syncInfo.id}`;
 		await writeText(url);
 		pushInfoToast({
 			message: m.syncer_copyLink_message()
@@ -208,8 +208,8 @@
 
 	{#if !brand.syncEnabled}
 		<InfoBox type="info">
-			Empress profile sync is intentionally offline for now. This fork is avoiding Gale's hosted
-			sync service until we wire Empress to its own infrastructure.
+			Empress profile sync is intentionally offline for now. This fork is staying off hosted
+			sync until Empress has its own infrastructure.
 		</InfoBox>
 
 		<p class="text-primary-300 mt-3 text-sm">

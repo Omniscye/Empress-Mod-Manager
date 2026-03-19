@@ -3,7 +3,7 @@
 	import Link from '../ui/Link.svelte';
 	import Icon from '@iconify/svelte';
 	import InfoBox from '../ui/InfoBox.svelte';
-	import { m } from '$lib/paraglide/messages';
+	import { brand } from '$lib/brand';
 
 	type Props = {
 		show?: boolean;
@@ -22,12 +22,11 @@
 </script>
 
 <InfoBox class={!show && 'hidden'}>
-	<div class="text-lg font-semibold text-white">{m.syncDonationNotice_content_1()}</div>
+	<div class="text-lg font-semibold text-white">Sync Infrastructure Status</div>
 
 	<div class="text-primary-300">
-		{m.syncDonationNotice_content_2()}<Link href="https://ko-fi.com/kesomannen">Kofi</Link>
-
-		<Icon class="mb-1 inline" icon="mdi:heart" />.
+		Empress is keeping sync offline until it has its own backend. Follow rollout notes in the
+		<Link href={brand.repoUrl}>repo</Link>.
 	</div>
 
 	<button
@@ -37,6 +36,6 @@
 		}}
 	>
 		<Icon icon="mdi:close" />
-		{m.syncDonationNotice_button()}
+		Hide for a week
 	</button>
 </InfoBox>

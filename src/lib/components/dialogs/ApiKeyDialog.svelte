@@ -1,11 +1,10 @@
 <script lang="ts">
-	import Button from '$lib/components/ui/Button.svelte';
-	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
-	import InputField from '$lib/components/ui/InputField.svelte';
-	import Link from '$lib/components/ui/Link.svelte';
-	import * as api from '$lib/api';
-	import { apiKeyDialog } from '$lib/state/misc.svelte';
-	import { m } from '$lib/paraglide/messages';
+import Button from '$lib/components/ui/Button.svelte';
+import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
+import InputField from '$lib/components/ui/InputField.svelte';
+import * as api from '$lib/api';
+import { apiKeyDialog } from '$lib/state/misc.svelte';
+import { m } from '$lib/paraglide/messages';
 
 	let token: string = $state('');
 	let loading = $state(false);
@@ -46,12 +45,10 @@
 		bind:value={token}
 	/>
 
-	<Link
-		class="mt-2 block max-w-max text-sm"
-		href="https://github.com/Kesomannen/gale/wiki/Getting-a-Thunderstore-API-token"
-	>
-		{m.apiKeyDialog_link()}
-	</Link>
+	<p class="text-primary-400 mt-2 text-sm">
+		Create a personal API token from your Thunderstore account settings, then paste it
+		here.
+	</p>
 
 	{#snippet buttons()}
 		<Button icon="mdi:exchange" color="accent" onclick={submit} {loading}

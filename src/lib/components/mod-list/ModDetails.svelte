@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Dialog from '$lib/components/ui/Dialog.svelte';
 	import Markdown from '$lib/components/ui/Markdown.svelte';
+	import { isTrackedMod, toggleTrackedMod } from '$lib/empress/vault';
 
 	import ModInfoDialog from '../dialogs/ModInfoDialog.svelte';
 	import ModCardList from '../ui/ModCardList.svelte';
@@ -23,6 +24,9 @@
 	import { type Snippet } from 'svelte';
 	import * as api from '$lib/api';
 	import { m } from '$lib/paraglide/messages';
+	import games from '$lib/state/game.svelte';
+	import profiles from '$lib/state/profile.svelte';
+	import { pushInfoToast } from '$lib/toast';
 
 	type Props = {
 		mod: Mod;
@@ -41,6 +45,7 @@
 
 	let changelogOpen = $state(false);
 	let changelog: ModInfoDialog;
+	let trackedInOps = $state(false);
 
 	let allContextItems = $derived([
 		...contextItems,
@@ -52,6 +57,43 @@
 	]);
 
 	let readmePromise: Promise<string | null> | null = $state(null);
+	let canTrackInOps = $derived(
+		profiles.activeId !== null &&
+			(mod.enabled !== undefined || mod.isInstalled === true || mod.type === ModType.Local)
+	);
+
+	function loadTrackedState() {
+		if (!canTrackInOps) {
+			trackedInOps = false;
+			return;
+		}
+
+		trackedInOps = isTrackedMod(
+			{
+				gameSlug: games.active?.slug,
+				profileId: profiles.activeId
+			},
+			mod.uuid
+		);
+	}
+
+	function toggleOpsTracking() {
+		if (!canTrackInOps) return;
+
+		trackedInOps = toggleTrackedMod(
+			{
+				gameSlug: games.active?.slug,
+				profileId: profiles.activeId
+			},
+			mod.uuid
+		);
+
+		pushInfoToast({
+			message: trackedInOps
+				? `${mod.name} is now tracked in Empress Ops.`
+				: `${mod.name} was removed from the Empress Ops watchlist.`
+		});
+	}
 
 	function formatReadme(readme: string | null) {
 		if (readme === null) return null;
@@ -64,6 +106,13 @@
 
 	$effect(() => {
 		readmePromise = getMarkdown(mod, 'readme').then(formatReadme);
+	});
+
+	$effect(() => {
+		mod.uuid;
+		profiles.activeId;
+		games.active?.slug;
+		loadTrackedState();
 	});
 </script>
 
@@ -110,6 +159,13 @@
 		</div>
 
 		<div class="flex flex-wrap gap-1">
+			{#if trackedInOps}
+				<div class="my-1 flex items-center rounded-lg bg-accent-700/80 px-3 py-1 text-white">
+					<Icon class="mr-1 text-xl" icon="mdi:target-variant" />
+					Tracked in Ops
+				</div>
+			{/if}
+
 			{#if mod.isDeprecated}
 				<div class="my-1 flex items-center rounded-lg bg-red-600 px-3 py-1 text-white">
 					<Icon class="mr-1 text-xl" icon="mdi:error" />
@@ -174,13 +230,26 @@
 		</div>
 	</div>
 
-	{#if mod.configFile}
-		<div
-			class="text-accent-400 hover:text-accent-300 my-2 flex items-center gap-2 text-lg hover:underline"
+		{#if mod.configFile}
+			<div
+				class="text-accent-400 hover:text-accent-300 my-2 flex items-center gap-2 text-lg hover:underline"
+			>
+				<Icon class="text-xl" icon="mdi:file-cog" />
+				<a href={'/config?file=' + mod.configFile}>{m.modDetails_editConfig()}</a>
+			</div>
+		{/if}
+
+	{#if canTrackInOps}
+		<button
+			class="group bg-primary-600 hover:bg-primary-500 mb-1 flex items-center rounded-md py-1 pr-1.5 pl-3 text-white"
+			onclick={toggleOpsTracking}
 		>
-			<Icon class="text-xl" icon="mdi:file-cog" />
-			<a href={'/config?file=' + mod.configFile}>{m.modDetails_editConfig()}</a>
-		</div>
+			<Icon
+				icon={trackedInOps ? 'mdi:target-off' : 'mdi:target-variant'}
+				class="mr-2 text-lg"
+			/>
+			{trackedInOps ? 'Remove from Ops watchlist' : 'Track in Ops watchlist'}
+		</button>
 	{/if}
 
 	<button

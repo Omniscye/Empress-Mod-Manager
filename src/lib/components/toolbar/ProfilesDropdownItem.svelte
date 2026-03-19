@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { ProfileInfo } from '$lib/types';
 	import Icon from '@iconify/svelte';
 	import { DropdownMenu } from 'bits-ui';
@@ -7,6 +8,8 @@
 	import { pushInfoToast } from '$lib/toast';
 	import IconButton from '$lib/components/ui/IconButton.svelte';
 	import { confirm } from '@tauri-apps/plugin-dialog';
+	import { EMPRESS_VAULT_UPDATED_EVENT, readProfileDossier } from '$lib/empress/vault';
+	import games from '$lib/state/game.svelte';
 	import profiles from '$lib/state/profile.svelte';
 
 	type Props = {
@@ -17,6 +20,14 @@
 	let { index, profile }: Props = $props();
 
 	let isActive = $derived(profile.id === profiles.active?.id);
+	let codename = $state('');
+
+	function loadDossier() {
+		codename = readProfileDossier({
+			gameSlug: games.active?.slug,
+			profileId: profile.id
+		}).codename;
+	}
 
 	async function deleteProfile() {
 		let confirmed = await confirm(`Are you sure you want to delete ${profile.name}?`);
@@ -28,6 +39,18 @@
 			message: `Deleted profile ${profile.name}.`
 		});
 	}
+
+	$effect(() => {
+		games.active?.slug;
+		profile.id;
+		loadDossier();
+	});
+
+	onMount(() => {
+		const reload = () => loadDossier();
+		window.addEventListener(EMPRESS_VAULT_UPDATED_EVENT, reload);
+		return () => window.removeEventListener(EMPRESS_VAULT_UPDATED_EVENT, reload);
+	});
 </script>
 
 <DropdownMenu.Item
@@ -43,9 +66,12 @@
 		<Icon icon="mdi:cloud" class="mr-2" />
 	{/if}
 
-	<span class="mr-3 grow">
-		{profile.name}
-	</span>
+	<div class="mr-3 grow">
+		<div>{profile.name}</div>
+		{#if codename}
+			<div class="text-primary-500 text-[10px] tracking-[0.18em] uppercase">{codename}</div>
+		{/if}
+	</div>
 
 	<Icon icon="mdi:check" class={clsx(!isActive && 'invisible', 'text-accent-500 mx-2 text-lg')} />
 

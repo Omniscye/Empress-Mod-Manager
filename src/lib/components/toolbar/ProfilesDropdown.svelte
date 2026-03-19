@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import Icon from '@iconify/svelte';
 	import { DropdownMenu } from 'bits-ui';
 	import ProfilesDropdownItem from './ProfilesDropdownItem.svelte';
@@ -6,20 +7,47 @@
 	import { fade, fly } from 'svelte/transition';
 	import { dropIn, dropOut } from '$lib/transitions';
 	import DropdownArrow from '../ui/DropdownArrow.svelte';
+	import { EMPRESS_VAULT_UPDATED_EVENT, readProfileDossier } from '$lib/empress/vault';
+	import games from '$lib/state/game.svelte';
 	import profiles from '$lib/state/profile.svelte';
 	import { m } from '$lib/paraglide/messages';
 
 	let open = $state(false);
 	let createDialogOpen = $state(false);
+	let activeCodename = $state('');
+
+	function loadActiveDossier() {
+		activeCodename = readProfileDossier({
+			gameSlug: games.active?.slug,
+			profileId: profiles.activeId
+		}).codename;
+	}
+
+	$effect(() => {
+		profiles.activeId;
+		games.active?.slug;
+		loadActiveDossier();
+	});
+
+	onMount(() => {
+		const reload = () => loadActiveDossier();
+		window.addEventListener(EMPRESS_VAULT_UPDATED_EVENT, reload);
+		return () => window.removeEventListener(EMPRESS_VAULT_UPDATED_EVENT, reload);
+	});
 </script>
 
 <DropdownMenu.Root bind:open>
 	<DropdownMenu.Trigger
 		class="group border-primary-600 text-primary-300 group-hover:text-primary-200 hover:bg-primary-800 flex min-w-40 shrink items-center border-r pr-4 pl-6"
 	>
-		<span class="mr-auto shrink truncate font-semibold">
-			{profiles.active?.name}
-		</span>
+		<div class="mr-auto flex min-w-0 flex-col py-2">
+			<span class="shrink truncate font-semibold">{activeCodename || profiles.active?.name}</span>
+			{#if activeCodename}
+				<span class="text-primary-400 text-[10px] tracking-[0.18em] uppercase">
+					{profiles.active?.name}
+				</span>
+			{/if}
+		</div>
 
 		<div
 			class="bg-primary-800 group-hover:bg-primary-700 mr-2 ml-6 rounded-sm px-2 py-0.5 text-sm font-medium"

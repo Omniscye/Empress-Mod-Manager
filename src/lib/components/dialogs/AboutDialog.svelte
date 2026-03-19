@@ -37,31 +37,27 @@
 		<p class="text-primary-300">
 			{m.aboutDialog_version({ version: version })}
 			<br />
-			Built on Gale under GNU General Public License v3.0
+			Derived from Gale under GNU General Public License v3.0
 		</p>
 		<div class="mt-3 flex items-center gap-2">
-			<Icon icon="mdi:file-document" class="text-xl text-white" />
-			<Link href="https://github.com/Kesomannen/gale/blob/master/CHANGELOG.md"
-				>{m.aboutDialog_changelog()}</Link
-			>
+			<Icon icon="mdi:github" class="text-xl text-white" />
+			<Link href={brand.repoUrl}>Empress repository</Link>
 		</div>
 		<div class="mt-1 flex items-center gap-2">
 			<Icon icon="mdi:file-document" class="text-xl text-white" />
-			<Link href="https://github.com/Kesomannen/gale/blob/master/privacy_policy.md"
-				>{m.aboutDialog_policy()}</Link
-			>
+			<Link href={brand.changelogUrl}>Empress changes</Link>
+		</div>
+		<div class="mt-1 flex items-center gap-2">
+			<Icon icon="mdi:file-document" class="text-xl text-white" />
+			<Link href={brand.legalUrl}>Legal notice</Link>
 		</div>
 		<div class="mt-1 flex items-center gap-2">
 			<Icon icon="mdi:source-fork" class="text-xl text-white" />
-			<Link href={brand.upstreamRepo}>Source base: {brand.upstreamName}</Link>
+			<Link href={brand.upstreamRepo}>Code lineage: {brand.upstreamName}</Link>
 		</div>
 		<div class="mt-1 flex items-center gap-2">
-			<Icon icon="mdi:discord" class="text-xl text-white" />
-			<Link href={brand.communityUrl}>Community</Link>
-		</div>
-		<div class="mt-1 flex items-center gap-2">
-			<Icon icon="mdi:heart" class="text-xl text-white" />
-			<Link href="https://ko-fi.com/kesomannen">{m.aboutDialog_donate()}</Link>
+			<Icon icon="mdi:alert-circle-outline" class="text-xl text-white" />
+			<Link href={brand.issuesUrl}>Report an issue</Link>
 		</div>
 		{#if brand.updatesEnabled}
 			<div class="mt-3 flex items-center gap-2">

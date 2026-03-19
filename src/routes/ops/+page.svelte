@@ -1,8 +1,20 @@
 <script lang="ts">
 	import * as api from '$lib/api';
 	import { brand } from '$lib/brand';
+	import {
+		createLaunchRitual,
+		defaultProfileVault,
+		empressRiskOptions,
+		type EmpressLaunchRitual,
+		type EmpressProfileVault,
+		type EmpressRiskLevel,
+		readProfileVault,
+		type EmpressVaultScope,
+		writeProfileVault
+	} from '$lib/empress/vault';
 	import games from '$lib/state/game.svelte';
 	import profiles from '$lib/state/profile.svelte';
+	import { pushInfoToast } from '$lib/toast';
 	import Icon from '@iconify/svelte';
 	import { ModType, type Mod, type ProfileQuery } from '$lib/types';
 	import { isOutdated, shortenNum, timeSince } from '$lib/util';
@@ -50,21 +62,125 @@
 	let intel: ProfileQuery = $state(emptyQuery);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
-	let notes = $state('');
-	let loadedNotesKey = $state<string | null>(null);
+	let vault: EmpressProfileVault = $state(defaultProfileVault());
+	let ritualName = $state('');
+	let tagInput = $state('');
+	let loadedVaultScope = $state<{ gameSlug: string; profileId: number } | null>(null);
 	let refreshCounter = 0;
 
-	function notesKey() {
-		if (profiles.activeId === null) return null;
-		return `empress:vault:${games.active?.slug ?? 'unknown'}:${profiles.activeId}`;
+	function currentVaultScope(): EmpressVaultScope {
+		return {
+			gameSlug: games.active?.slug,
+			profileId: profiles.activeId
+		};
 	}
 
-	function loadNotes() {
-		const key = notesKey();
-		if (typeof localStorage === 'undefined' || key === null) return;
+	function normalizeTags(input: string) {
+		return input
+			.split(',')
+			.map((tag) => tag.trim())
+			.filter((tag, index, list) => tag.length > 0 && list.indexOf(tag) === index)
+			.slice(0, 10);
+	}
 
-		loadedNotesKey = key;
-		notes = localStorage.getItem(key) ?? '';
+	function loadVault() {
+		const scope = currentVaultScope();
+		if (
+			scope.gameSlug === null ||
+			scope.gameSlug === undefined ||
+			scope.profileId === null ||
+			scope.profileId === undefined
+		) {
+			loadedVaultScope = null;
+			vault = defaultProfileVault();
+			tagInput = '';
+			return;
+		}
+
+		loadedVaultScope = {
+			gameSlug: scope.gameSlug,
+			profileId: scope.profileId
+		};
+
+		vault = readProfileVault(scope);
+		tagInput = vault.dossier.tags.join(', ');
+	}
+
+	function persistVault() {
+		if (loadedVaultScope === null) return;
+
+		vault.dossier.tags = normalizeTags(tagInput);
+		writeProfileVault(loadedVaultScope, vault);
+	}
+
+	function riskTone(risk: EmpressRiskLevel) {
+		switch (risk) {
+			case 'watch':
+				return 'border-primary-500/35 bg-primary-950/40 text-primary-200';
+			case 'volatile':
+				return 'border-yellow-500/35 bg-yellow-950/20 text-yellow-200';
+			case 'cataclysm':
+				return 'border-accent-500/35 bg-accent-950/25 text-accent-200';
+			default:
+				return 'border-emerald-500/35 bg-emerald-950/20 text-emerald-200';
+		}
+	}
+
+	function setRisk(risk: EmpressRiskLevel) {
+		vault.dossier.risk = risk;
+		persistVault();
+	}
+
+	function removeTrackedMod(uuid: string) {
+		vault.trackedMods = vault.trackedMods.filter((trackedUuid) => trackedUuid !== uuid);
+		persistVault();
+	}
+
+	function captureCurrentRitual() {
+		if (profiles.active === null) return;
+
+		const name =
+			ritualName.trim().length > 0
+				? ritualName.trim()
+				: `Ritual ${vault.launchRituals.length + 1}`;
+
+		vault.launchRituals = [
+			createLaunchRitual(name, profiles.active.customArgs, profiles.active.customArgsEnabled),
+			...vault.launchRituals
+		].slice(0, 24);
+
+		ritualName = '';
+		persistVault();
+		pushInfoToast({ message: `Captured launch ritual "${name}".` });
+	}
+
+	async function applyRitual(ritual: EmpressLaunchRitual) {
+		await api.profile.setCustomArgs(ritual.args, ritual.enabled);
+		await profiles.refresh();
+		pushInfoToast({ message: `Applied ritual "${ritual.name}".` });
+	}
+
+	function overwriteRitual(ritualId: string) {
+		if (profiles.active === null) return;
+
+		vault.launchRituals = vault.launchRituals.map((ritual) =>
+			ritual.id === ritualId
+				? {
+						...ritual,
+						args: [...profiles.active!.customArgs],
+						enabled: profiles.active!.customArgsEnabled,
+						updatedAt: new Date().toISOString()
+					}
+				: ritual
+		);
+
+		persistVault();
+		pushInfoToast({ message: 'Updated ritual from the active profile args.' });
+	}
+
+	function deleteRitual(ritualId: string) {
+		vault.launchRituals = vault.launchRituals.filter((ritual) => ritual.id !== ritualId);
+		persistVault();
 	}
 
 	async function refreshIntel() {
@@ -125,18 +241,24 @@
 	$effect(() => {
 		profiles.activeId;
 		games.active?.slug;
-		loadNotes();
+		loadVault();
 		refreshIntel();
-	});
-
-	$effect(() => {
-		if (typeof localStorage === 'undefined' || loadedNotesKey === null) return;
-		localStorage.setItem(loadedNotesKey, notes);
 	});
 
 	let outdatedMods = $derived.by(() => intel.mods.filter((mod) => isOutdated(mod)));
 	let disabledMods = $derived.by(() => intel.mods.filter((mod) => mod.enabled === false));
 	let localMods = $derived.by(() => intel.mods.filter((mod) => mod.type === ModType.Local));
+	let trackedMods = $derived.by(() =>
+		vault.trackedMods
+			.map((uuid) => intel.mods.find((mod) => mod.uuid === uuid) ?? null)
+			.filter((mod): mod is Mod => mod !== null)
+	);
+	let activeRisk = $derived.by(
+		() => empressRiskOptions.find((option) => option.value === vault.dossier.risk) ?? empressRiskOptions[0]
+	);
+	let displayProfileName = $derived.by(
+		() => vault.dossier.codename || profiles.active?.name || 'No profile active'
+	);
 	let topCategories = $derived.by(() => {
 		const counts = new Map<string, number>();
 
@@ -195,8 +317,10 @@
 					/>
 					<div>
 						<div class="display-font text-accent-300 text-xs">Ops Center</div>
-						<h1 class="mt-2 text-4xl font-semibold text-white">{brand.name}</h1>
-						<p class="text-primary-200 mt-2 max-w-2xl text-lg">{brand.tagline}</p>
+						<h1 class="mt-2 text-4xl font-semibold text-white">{displayProfileName}</h1>
+						<p class="text-primary-200 mt-2 max-w-2xl text-lg">
+							{brand.name} command layer. {brand.tagline}
+						</p>
 					</div>
 				</div>
 
@@ -208,6 +332,16 @@
 					<span class="empress-badge">
 						<Icon icon="mdi:account-box-outline" />
 						{profiles.active?.name ?? 'No profile active'}
+					</span>
+					{#if vault.dossier.codename}
+						<span class="empress-badge">
+							<Icon icon="mdi:card-account-details-outline" />
+							Codename {vault.dossier.codename}
+						</span>
+					{/if}
+					<span class={['empress-badge border', riskTone(vault.dossier.risk)]}>
+						<Icon icon="mdi:alert-decagram-outline" />
+						{activeRisk.label}
 					</span>
 					<span class="empress-badge">
 						<Icon icon="mdi:update" />
@@ -374,6 +508,69 @@
 
 			<div class="flex flex-col gap-4">
 				<div class="empress-card rounded-[1.5rem] p-5">
+					<div class="display-font text-accent-300 text-xs">Dossier</div>
+					<h2 class="mt-2 text-2xl font-semibold text-white">Profile identity</h2>
+					<p class="text-primary-400 mt-2 text-sm">
+						Give this loadout its own codename, risk rating, and purpose so it feels like an
+						Empress operation instead of a generic profile slot.
+					</p>
+
+					<div class="mt-4 grid gap-3">
+						<div>
+							<div class="text-primary-300 text-sm">Codename</div>
+							<input
+								class="empress-textarea mt-2 min-h-0"
+								bind:value={vault.dossier.codename}
+								oninput={persistVault}
+								placeholder="Nightglass, Red Choir, Eclipse Lab..."
+							/>
+						</div>
+
+						<div>
+							<div class="text-primary-300 text-sm">Risk posture</div>
+							<div class="mt-2 grid gap-2 sm:grid-cols-2">
+								{#each empressRiskOptions as option (option.value)}
+									<button
+										class={[
+											riskTone(option.value),
+											vault.dossier.risk === option.value && 'ring-1 ring-white/25',
+											'rounded-2xl border px-3 py-3 text-left transition-colors'
+										]}
+										onclick={() => setRisk(option.value)}
+									>
+										<div class="font-semibold">{option.label}</div>
+										<div class="mt-1 text-sm opacity-85">{option.description}</div>
+									</button>
+								{/each}
+							</div>
+						</div>
+
+						<div>
+							<div class="text-primary-300 text-sm">Tags</div>
+							<input
+								class="empress-textarea mt-2 min-h-0"
+								bind:value={tagInput}
+								oninput={() => {
+									vault.dossier.tags = normalizeTags(tagInput);
+									persistVault();
+								}}
+								placeholder="bossing, testing, vanilla+, recording"
+							/>
+						</div>
+
+						<div>
+							<div class="text-primary-300 text-sm">Mission brief</div>
+							<textarea
+								class="empress-textarea mt-2"
+								bind:value={vault.dossier.mission}
+								oninput={persistVault}
+								placeholder="What this profile is for, what it should never touch, and what success looks like..."
+							></textarea>
+						</div>
+					</div>
+				</div>
+
+				<div class="empress-card rounded-[1.5rem] p-5">
 					<div class="display-font text-accent-300 text-xs">War Notes</div>
 					<h2 class="mt-2 text-2xl font-semibold text-white">Profile notebook</h2>
 					<p class="text-primary-400 mt-2 text-sm">
@@ -382,7 +579,8 @@
 
 					<textarea
 						class="empress-textarea mt-4"
-						bind:value={notes}
+						bind:value={vault.notes}
+						oninput={persistVault}
 						placeholder="Write down unstable mods, load-order experiments, commands, or release notes..."
 					></textarea>
 
@@ -392,10 +590,101 @@
 						</div>
 						<button
 							class="border-primary-700/70 hover:border-accent-500/45 hover:bg-primary-900/70 rounded-full border px-4 py-2 text-sm text-white transition-colors"
-							onclick={() => (notes = '')}
+							onclick={() => {
+								vault.notes = '';
+								persistVault();
+							}}
 						>
 							Clear notes
 						</button>
+					</div>
+				</div>
+
+				<div class="empress-card rounded-[1.5rem] p-5">
+					<div class="display-font text-accent-300 text-xs">Launch Rituals</div>
+					<h2 class="mt-2 text-2xl font-semibold text-white">Saved launch presets</h2>
+					<p class="text-primary-400 mt-2 text-sm">
+						Capture named profile arg sets and reapply them with one click whenever you bounce
+						between stable, test, or recording builds.
+					</p>
+
+					<div class="border-primary-700/40 bg-primary-950/55 mt-4 rounded-2xl border p-4">
+						<div class="flex flex-wrap items-center justify-between gap-3">
+							<div>
+								<div class="text-primary-300 text-sm">Active profile args</div>
+								<div class="mt-1 text-xl font-semibold text-white">
+									{profiles.active?.customArgs.length ?? 0} item{profiles.active?.customArgs.length === 1
+										? ''
+										: 's'}
+								</div>
+							</div>
+							<div class="text-primary-400 text-sm">
+								{profiles.active?.customArgsEnabled ? 'Enabled on launch' : 'Stored but disabled'}
+							</div>
+						</div>
+
+						<div class="mt-4 flex flex-col gap-3 sm:flex-row">
+							<input
+								class="empress-textarea min-h-0 grow"
+								bind:value={ritualName}
+								placeholder="Stable raid, low-spec capture, mod test bed..."
+							/>
+							<button
+								class="border-accent-500/35 bg-accent-950/24 hover:bg-accent-950/38 rounded-full border px-4 py-2 text-sm font-medium text-white transition-colors"
+								onclick={captureCurrentRitual}
+							>
+								Capture current args
+							</button>
+						</div>
+					</div>
+
+					<div class="mt-4 space-y-3">
+						{#if vault.launchRituals.length === 0}
+							<div
+								class="border-primary-700/40 bg-primary-950/55 text-primary-300 rounded-2xl border px-4 py-4 text-sm"
+							>
+								No rituals saved yet. Capture your active profile args once you have a loadout you
+								want to reuse.
+							</div>
+						{:else}
+							{#each vault.launchRituals as ritual (ritual.id)}
+								<div class="border-primary-700/40 bg-primary-950/55 rounded-2xl border p-4">
+									<div class="flex flex-wrap items-start justify-between gap-3">
+										<div>
+											<div class="font-semibold text-white">{ritual.name}</div>
+											<div class="text-primary-400 mt-1 text-sm">
+												{ritual.args.length} arg{ritual.args.length === 1 ? '' : 's'}
+												<span class="text-primary-600 mx-1">/</span>
+												{ritual.enabled ? 'enabled' : 'disabled'}
+												<span class="text-primary-600 mx-1">/</span>
+												updated {relativeTime(ritual.updatedAt)} ago
+											</div>
+										</div>
+
+										<div class="flex flex-wrap gap-2">
+											<button
+												class="border-accent-500/35 bg-accent-950/24 hover:bg-accent-950/38 rounded-full border px-3 py-1.5 text-sm text-white transition-colors"
+												onclick={() => applyRitual(ritual)}
+											>
+												Apply
+											</button>
+											<button
+												class="border-primary-600/45 hover:bg-primary-900/70 rounded-full border px-3 py-1.5 text-sm text-white transition-colors"
+												onclick={() => overwriteRitual(ritual.id)}
+											>
+												Overwrite
+											</button>
+											<button
+												class="border-red-500/35 hover:bg-red-950/30 rounded-full border px-3 py-1.5 text-sm text-white transition-colors"
+												onclick={() => deleteRitual(ritual.id)}
+											>
+												Delete
+											</button>
+										</div>
+									</div>
+								</div>
+							{/each}
+						{/if}
 					</div>
 				</div>
 
@@ -443,7 +732,47 @@
 			</div>
 		</section>
 
-		<section class="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+		<section class="grid gap-4 xl:grid-cols-[0.9fr_0.9fr_1.1fr]">
+			<div class="empress-card rounded-[1.5rem] p-5">
+				<div class="display-font text-accent-300 text-xs">Ops Watchlist</div>
+				<h2 class="mt-2 text-2xl font-semibold text-white">Tracked mods</h2>
+
+				<div class="mt-4 space-y-3">
+					{#if trackedMods.length === 0}
+						<div
+							class="text-primary-400 border-primary-700/40 bg-primary-950/55 rounded-2xl border px-4 py-4 text-sm"
+						>
+							No tracked mods yet. Mark mods from the details panel to keep them in your Empress
+							watchlist.
+						</div>
+					{:else}
+						{#each trackedMods as mod (mod.uuid)}
+							<div class="border-primary-700/40 bg-primary-950/55 rounded-2xl border px-4 py-3">
+								<div class="flex items-start justify-between gap-3">
+									<div>
+										<div class="font-semibold text-white">{mod.name}</div>
+										<div class="text-primary-400 mt-1 text-sm">
+											{mod.author ?? 'Unknown author'}
+											{#if mod.version}
+												<span class="text-primary-600 mx-1">/</span>
+												{mod.version}
+											{/if}
+										</div>
+									</div>
+
+									<button
+										class="border-primary-600/45 hover:bg-primary-900/70 rounded-full border px-3 py-1 text-xs tracking-[0.14em] uppercase text-white transition-colors"
+										onclick={() => removeTrackedMod(mod.uuid)}
+									>
+										Remove
+									</button>
+								</div>
+							</div>
+						{/each}
+					{/if}
+				</div>
+			</div>
+
 			<div class="empress-card rounded-[1.5rem] p-5">
 				<div class="display-font text-primary-300 text-xs">Arsenal Mix</div>
 				<h2 class="mt-2 text-2xl font-semibold text-white">Category spread</h2>
