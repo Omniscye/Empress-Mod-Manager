@@ -1,3 +1,5 @@
+import { ModType, type Mod } from '$lib/types';
+
 export type EmpressRiskLevel = 'dormant' | 'watch' | 'volatile' | 'cataclysm';
 
 export type EmpressDossier = {
@@ -15,11 +17,45 @@ export type EmpressLaunchRitual = {
 	updatedAt: string;
 };
 
+export type EmpressIntelTarget = {
+	uuid: string;
+	name: string;
+	author: string | null;
+	version: string | null;
+	notedAt: string;
+};
+
+export type EmpressSnapshotMod = {
+	uuid: string;
+	name: string;
+	version: string | null;
+	enabled: boolean | null;
+	type: ModType;
+};
+
+export type EmpressLoadoutSnapshot = {
+	id: string;
+	name: string;
+	createdAt: string;
+	mods: EmpressSnapshotMod[];
+};
+
+export type EmpressSnapshotDiff = {
+	added: EmpressSnapshotMod[];
+	removed: EmpressSnapshotMod[];
+	changed: Array<{
+		previous: EmpressSnapshotMod;
+		current: EmpressSnapshotMod;
+	}>;
+};
+
 export type EmpressProfileVault = {
 	notes: string;
 	dossier: EmpressDossier;
 	trackedMods: string[];
 	launchRituals: EmpressLaunchRitual[];
+	intelTargets: EmpressIntelTarget[];
+	snapshots: EmpressLoadoutSnapshot[];
 };
 
 export type EmpressVaultScope = {
@@ -107,6 +143,74 @@ function normalizeRitual(ritual: unknown): EmpressLaunchRitual | null {
 	};
 }
 
+function normalizeIntelTarget(target: unknown): EmpressIntelTarget | null {
+	if (typeof target !== 'object' || target === null) return null;
+
+	const input = target as Partial<EmpressIntelTarget>;
+	if (typeof input.uuid !== 'string' || input.uuid.length === 0) return null;
+	if (typeof input.name !== 'string' || input.name.trim().length === 0) return null;
+
+	return {
+		uuid: input.uuid,
+		name: input.name.trim(),
+		author: typeof input.author === 'string' && input.author.trim().length > 0 ? input.author.trim() : null,
+		version:
+			typeof input.version === 'string' && input.version.trim().length > 0
+				? input.version.trim()
+				: null,
+		notedAt:
+			typeof input.notedAt === 'string' && input.notedAt.length > 0
+				? input.notedAt
+				: new Date().toISOString()
+	};
+}
+
+function normalizeSnapshotMod(mod: unknown): EmpressSnapshotMod | null {
+	if (typeof mod !== 'object' || mod === null) return null;
+
+	const input = mod as Partial<EmpressSnapshotMod>;
+	if (typeof input.uuid !== 'string' || input.uuid.length === 0) return null;
+	if (typeof input.name !== 'string' || input.name.trim().length === 0) return null;
+
+	return {
+		uuid: input.uuid,
+		name: input.name.trim(),
+		version:
+			typeof input.version === 'string' && input.version.trim().length > 0
+				? input.version.trim()
+				: null,
+		enabled:
+			typeof input.enabled === 'boolean' || input.enabled === null
+				? input.enabled
+				: null,
+		type: input.type === ModType.Local ? ModType.Local : ModType.Remote
+	};
+}
+
+function normalizeSnapshot(snapshot: unknown): EmpressLoadoutSnapshot | null {
+	if (typeof snapshot !== 'object' || snapshot === null) return null;
+
+	const input = snapshot as Partial<EmpressLoadoutSnapshot>;
+	const name = typeof input.name === 'string' ? input.name.trim() : '';
+	if (name.length === 0) return null;
+
+	const mods = Array.isArray(input.mods)
+		? input.mods
+				.map(normalizeSnapshotMod)
+				.filter((mod): mod is EmpressSnapshotMod => mod !== null)
+		: [];
+
+	return {
+		id: typeof input.id === 'string' && input.id.length > 0 ? input.id : makeId(),
+		name,
+		createdAt:
+			typeof input.createdAt === 'string' && input.createdAt.length > 0
+				? input.createdAt
+				: new Date().toISOString(),
+		mods
+	};
+}
+
 function normalizeRiskLevel(input: unknown): EmpressRiskLevel {
 	return input === 'watch' || input === 'volatile' || input === 'cataclysm' ? input : 'dormant';
 }
@@ -118,6 +222,16 @@ function normalizeVault(input: unknown): EmpressProfileVault {
 	const dossier = typeof raw.dossier === 'object' && raw.dossier !== null ? raw.dossier : {};
 	const rituals = Array.isArray(raw.launchRituals)
 		? raw.launchRituals.map(normalizeRitual).filter((ritual): ritual is EmpressLaunchRitual => ritual !== null)
+		: [];
+	const intelTargets = Array.isArray(raw.intelTargets)
+		? raw.intelTargets
+				.map(normalizeIntelTarget)
+				.filter((target): target is EmpressIntelTarget => target !== null)
+		: [];
+	const snapshots = Array.isArray(raw.snapshots)
+		? raw.snapshots
+				.map(normalizeSnapshot)
+				.filter((snapshot): snapshot is EmpressLoadoutSnapshot => snapshot !== null)
 		: [];
 
 	return {
@@ -137,7 +251,9 @@ function normalizeVault(input: unknown): EmpressProfileVault {
 		trackedMods: Array.isArray(raw.trackedMods)
 			? raw.trackedMods.filter((uuid): uuid is string => typeof uuid === 'string')
 			: [],
-		launchRituals: rituals.slice(0, 24)
+		launchRituals: rituals.slice(0, 24),
+		intelTargets: intelTargets.slice(0, 40),
+		snapshots: snapshots.slice(0, 12)
 	};
 }
 
@@ -155,7 +271,9 @@ export function defaultProfileVault(): EmpressProfileVault {
 		notes: '',
 		dossier: defaultEmpressDossier(),
 		trackedMods: [],
-		launchRituals: []
+		launchRituals: [],
+		intelTargets: [],
+		snapshots: []
 	};
 }
 
@@ -215,6 +333,63 @@ export function createLaunchRitual(
 	};
 }
 
+function snapshotModFromMod(
+	mod: Pick<Mod, 'uuid' | 'name' | 'version' | 'enabled' | 'type'>
+): EmpressSnapshotMod {
+	return {
+		uuid: mod.uuid,
+		name: mod.name,
+		version: mod.version,
+		enabled: mod.enabled ?? null,
+		type: mod.type
+	};
+}
+
+export function createLoadoutSnapshot(
+	name: string,
+	mods: Array<Pick<Mod, 'uuid' | 'name' | 'version' | 'enabled' | 'type'>>
+): EmpressLoadoutSnapshot {
+	return {
+		id: makeId(),
+		name: name.trim(),
+		createdAt: new Date().toISOString(),
+		mods: mods.map(snapshotModFromMod)
+	};
+}
+
+export function diffLoadoutSnapshot(
+	snapshot: EmpressLoadoutSnapshot,
+	mods: Array<Pick<Mod, 'uuid' | 'name' | 'version' | 'enabled' | 'type'>>
+): EmpressSnapshotDiff {
+	const currentMods = mods.map(snapshotModFromMod);
+	const previousByUuid = new Map(snapshot.mods.map((mod) => [mod.uuid, mod]));
+	const currentByUuid = new Map(currentMods.map((mod) => [mod.uuid, mod]));
+
+	const added = currentMods.filter((mod) => !previousByUuid.has(mod.uuid));
+	const removed = snapshot.mods.filter((mod) => !currentByUuid.has(mod.uuid));
+	const changed = currentMods
+		.map((mod) => {
+			const previous = previousByUuid.get(mod.uuid);
+			if (!previous) return null;
+
+			if (
+				previous.version === mod.version &&
+				previous.enabled === mod.enabled &&
+				previous.type === mod.type
+			) {
+				return null;
+			}
+
+			return { previous, current: mod };
+		})
+		.filter(
+			(entry): entry is { previous: EmpressSnapshotMod; current: EmpressSnapshotMod } =>
+				entry !== null
+		);
+
+	return { added, removed, changed };
+}
+
 export function isTrackedMod(scope: EmpressVaultScope, uuid: string): boolean {
 	return readProfileVault(scope).trackedMods.includes(uuid);
 }
@@ -232,6 +407,33 @@ export function toggleTrackedMod(scope: EmpressVaultScope, uuid: string): boolea
 
 	tracked.add(uuid);
 	vault.trackedMods = [...tracked];
+	writeProfileVault(scope, vault);
+	return true;
+}
+
+export function isIntelTarget(scope: EmpressVaultScope, uuid: string): boolean {
+	return readProfileVault(scope).intelTargets.some((target) => target.uuid === uuid);
+}
+
+export function toggleIntelTarget(scope: EmpressVaultScope, mod: Mod): boolean {
+	const vault = readProfileVault(scope);
+	const existingIndex = vault.intelTargets.findIndex((target) => target.uuid === mod.uuid);
+
+	if (existingIndex >= 0) {
+		vault.intelTargets = vault.intelTargets.filter((target) => target.uuid !== mod.uuid);
+		writeProfileVault(scope, vault);
+		return false;
+	}
+
+	const intelTarget: EmpressIntelTarget = {
+		uuid: mod.uuid,
+		name: mod.name,
+		author: mod.author,
+		version: mod.version ?? mod.versions[0]?.name ?? null,
+		notedAt: new Date().toISOString()
+	};
+
+	vault.intelTargets = [intelTarget, ...vault.intelTargets].slice(0, 40);
 	writeProfileVault(scope, vault);
 	return true;
 }

@@ -11,6 +11,7 @@
 	import { onMount } from 'svelte';
 	import ColorPref from '../prefs/ColorPref.svelte';
 	import { invoke } from '@tauri-apps/api/core';
+	import { brand } from '$lib/brand';
 	import { m } from '$lib/paraglide/messages';
 
 	type Props = {
@@ -59,10 +60,20 @@
 	}
 </script>
 
-<Dialog title={m.welcomeDialog_title()} canClose={stage === 'end'} bind:open>
+<Dialog title={`Welcome to ${brand.shortName}`} canClose={stage === 'end'} bind:open>
 	<div class="text-primary-300">
 		{#if stage === 'gameSelect'}
-			{m.welcomeDialog_content_gameSelect()}
+			<div class="empress-card empress-card-accent mb-4 rounded-[1.4rem] p-4">
+				<div class="display-font text-accent-300 text-xs">Command Uplink</div>
+				<h3 class="mt-2 text-2xl font-semibold text-white">Build your first Empress loadout</h3>
+				<p class="text-primary-300 mt-2 text-sm leading-6">
+					Choose the game you want to command first. Empress is built to feel like a darker,
+					more tactical mod manager with dossiers, watchlists, rituals, snapshots, and an Ops
+					Center layered on top of the core workflow.
+				</p>
+			</div>
+
+			<p class="mb-3">{m.welcomeDialog_content_gameSelect()}</p>
 			<GameSelect onselect={onSelectGame} />
 		{:else if stage === 'importProfiles'}
 			<p>{m.welcomeDialog_content_importProfiles_1()}</p>
@@ -124,18 +135,38 @@
 				>
 			</div>
 		{:else if stage === 'end'}
-			<p>{m.welcomeDialog_content_end_1()}</p>
+			<div class="empress-card empress-card-accent rounded-[1.4rem] p-4">
+				<div class="display-font text-accent-300 text-xs">System Ready</div>
+				<h3 class="mt-2 text-2xl font-semibold text-white">The command deck is live</h3>
+				<p class="text-primary-300 mt-2 text-sm leading-6">
+					Start in Arsenal to manage installed mods, jump into Recon to scout packages, and use
+					Ops when you want dossiers, watchlists, launch rituals, notes, and snapshot drift
+					tracking.
+				</p>
+			</div>
 
-			<p class="mt-1">
-				{m.welcomeDialog_content_end_2()}
+			<div class="mt-4 grid gap-3 sm:grid-cols-2">
 				<a
-					href="https://discord.gg/sfuWXRfeTt"
+					href={brand.repoUrl}
 					target="_blank"
-					class="text-accent-400 hover:underline"
+					class="border-primary-700/50 hover:border-primary-400/40 hover:bg-primary-900/70 rounded-2xl border px-4 py-3"
 				>
-					{m.welcomeDialog_content_end_3()}
-				</a>.
-			</p>
+					<div class="font-semibold text-white">Open the Empress repo</div>
+					<div class="text-primary-400 mt-1 text-sm">
+						Release notes, source, and project updates live there.
+					</div>
+				</a>
+				<a
+					href={brand.issuesUrl}
+					target="_blank"
+					class="border-primary-700/50 hover:border-primary-400/40 hover:bg-primary-900/70 rounded-2xl border px-4 py-3"
+				>
+					<div class="font-semibold text-white">Report issues or requests</div>
+					<div class="text-primary-400 mt-1 text-sm">
+						Use GitHub issues if something breaks or you want new Empress features.
+					</div>
+				</a>
+			</div>
 		{/if}
 	</div>
 </Dialog>

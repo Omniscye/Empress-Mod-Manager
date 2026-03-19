@@ -2,9 +2,12 @@
 	import * as api from '$lib/api';
 	import { brand } from '$lib/brand';
 	import {
+		createLoadoutSnapshot,
 		createLaunchRitual,
 		defaultProfileVault,
+		diffLoadoutSnapshot,
 		empressRiskOptions,
+		type EmpressIntelTarget,
 		type EmpressLaunchRitual,
 		type EmpressProfileVault,
 		type EmpressRiskLevel,
@@ -64,6 +67,7 @@
 	let error = $state<string | null>(null);
 	let vault: EmpressProfileVault = $state(defaultProfileVault());
 	let ritualName = $state('');
+	let snapshotName = $state('');
 	let tagInput = $state('');
 	let loadedVaultScope = $state<{ gameSlug: string; profileId: number } | null>(null);
 	let refreshCounter = 0;
@@ -136,6 +140,11 @@
 		persistVault();
 	}
 
+	function removeIntelTarget(uuid: string) {
+		vault.intelTargets = vault.intelTargets.filter((target) => target.uuid !== uuid);
+		persistVault();
+	}
+
 	function captureCurrentRitual() {
 		if (profiles.active === null) return;
 
@@ -180,6 +189,25 @@
 
 	function deleteRitual(ritualId: string) {
 		vault.launchRituals = vault.launchRituals.filter((ritual) => ritual.id !== ritualId);
+		persistVault();
+	}
+
+	function captureSnapshot() {
+		if (intel.mods.length === 0) return;
+
+		const name =
+			snapshotName.trim().length > 0
+				? snapshotName.trim()
+				: `Snapshot ${vault.snapshots.length + 1}`;
+
+		vault.snapshots = [createLoadoutSnapshot(name, intel.mods), ...vault.snapshots].slice(0, 12);
+		snapshotName = '';
+		persistVault();
+		pushInfoToast({ message: `Captured loadout snapshot "${name}".` });
+	}
+
+	function deleteSnapshot(snapshotId: string) {
+		vault.snapshots = vault.snapshots.filter((snapshot) => snapshot.id !== snapshotId);
 		persistVault();
 	}
 
@@ -253,6 +281,9 @@
 			.map((uuid) => intel.mods.find((mod) => mod.uuid === uuid) ?? null)
 			.filter((mod): mod is Mod => mod !== null)
 	);
+	let intelTargets = $derived.by(
+		() => vault.intelTargets.filter((target) => !trackedMods.some((mod) => mod.uuid === target.uuid)) as EmpressIntelTarget[]
+	);
 	let activeRisk = $derived.by(
 		() => empressRiskOptions.find((option) => option.value === vault.dossier.risk) ?? empressRiskOptions[0]
 	);
@@ -297,6 +328,10 @@
 		if (readinessScore >= 42) return 'Volatile';
 		return 'Critical';
 	});
+	let latestSnapshot = $derived.by(() => vault.snapshots[0] ?? null);
+	let snapshotDrift = $derived.by(() =>
+		latestSnapshot ? diffLoadoutSnapshot(latestSnapshot, intel.mods) : null
+	);
 </script>
 
 <svelte:head>
@@ -383,7 +418,7 @@
 			</div>
 		</section>
 
-		<section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+		<section class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
 			<div class="empress-card rounded-3xl p-5">
 				<div class="display-font text-primary-300 text-xs">Installed Mods</div>
 				<div class="mt-3 text-4xl font-semibold text-white">{intel.totalModCount}</div>
@@ -409,6 +444,14 @@
 				<div class="mt-3 text-4xl font-semibold text-white">{localMods.length}</div>
 				<p class="text-primary-400 mt-2 text-sm">
 					Manual or imported local mods that deserve extra attention.
+				</p>
+			</div>
+
+			<div class="empress-card rounded-3xl p-5">
+				<div class="display-font text-primary-300 text-xs">Baselines</div>
+				<div class="mt-3 text-4xl font-semibold text-white">{vault.snapshots.length}</div>
+				<p class="text-primary-400 mt-2 text-sm">
+					Saved Empress loadout captures for drift detection.
 				</p>
 			</div>
 		</section>
@@ -689,6 +732,87 @@
 				</div>
 
 				<div class="empress-card rounded-[1.5rem] p-5">
+					<div class="display-font text-accent-300 text-xs">Snapshot Lab</div>
+					<h2 class="mt-2 text-2xl font-semibold text-white">Loadout baselines</h2>
+					<p class="text-primary-400 mt-2 text-sm">
+						Capture the active mod stack as a baseline, then compare live drift against the latest
+						snapshot whenever a profile starts acting different.
+					</p>
+
+					<div class="border-primary-700/40 bg-primary-950/55 mt-4 rounded-2xl border p-4">
+						<div class="flex flex-col gap-3 sm:flex-row">
+							<input
+								class="empress-textarea min-h-0 grow"
+								bind:value={snapshotName}
+								placeholder="Stable raid build, pre-update baseline..."
+							/>
+							<button
+								class="border-accent-500/35 bg-accent-950/24 hover:bg-accent-950/38 rounded-full border px-4 py-2 text-sm font-medium text-white transition-colors"
+								onclick={captureSnapshot}
+							>
+								Capture baseline
+							</button>
+						</div>
+
+						{#if latestSnapshot && snapshotDrift}
+							<div class="mt-4 grid gap-3 md:grid-cols-3">
+								<div class="rounded-2xl border border-emerald-500/20 bg-emerald-950/12 px-4 py-3">
+									<div class="text-emerald-200 text-sm">Added since baseline</div>
+									<div class="mt-1 text-2xl font-semibold text-white">
+										{snapshotDrift.added.length}
+									</div>
+								</div>
+								<div class="rounded-2xl border border-accent-500/20 bg-accent-950/12 px-4 py-3">
+									<div class="text-accent-200 text-sm">Removed since baseline</div>
+									<div class="mt-1 text-2xl font-semibold text-white">
+										{snapshotDrift.removed.length}
+									</div>
+								</div>
+								<div class="rounded-2xl border border-primary-500/20 bg-primary-950/18 px-4 py-3">
+									<div class="text-primary-200 text-sm">Changed versions or state</div>
+									<div class="mt-1 text-2xl font-semibold text-white">
+										{snapshotDrift.changed.length}
+									</div>
+								</div>
+							</div>
+						{/if}
+					</div>
+
+					<div class="mt-4 space-y-3">
+						{#if vault.snapshots.length === 0}
+							<div
+								class="border-primary-700/40 bg-primary-950/55 text-primary-300 rounded-2xl border px-4 py-4 text-sm"
+							>
+								No snapshots yet. Capture one once the profile feels stable enough to use as a
+								baseline.
+							</div>
+						{:else}
+							{#each vault.snapshots as snapshot (snapshot.id)}
+								<div class="border-primary-700/40 bg-primary-950/55 rounded-2xl border p-4">
+									<div class="flex flex-wrap items-start justify-between gap-3">
+										<div>
+											<div class="font-semibold text-white">{snapshot.name}</div>
+											<div class="text-primary-400 mt-1 text-sm">
+												{snapshot.mods.length} mod{snapshot.mods.length === 1 ? '' : 's'}
+												<span class="text-primary-600 mx-1">/</span>
+												captured {relativeTime(snapshot.createdAt)} ago
+											</div>
+										</div>
+
+										<button
+											class="border-red-500/35 hover:bg-red-950/30 rounded-full border px-3 py-1.5 text-sm text-white transition-colors"
+											onclick={() => deleteSnapshot(snapshot.id)}
+										>
+											Delete
+										</button>
+									</div>
+								</div>
+							{/each}
+						{/if}
+					</div>
+				</div>
+
+				<div class="empress-card rounded-[1.5rem] p-5">
 					<div class="display-font text-primary-300 text-xs">Command Links</div>
 					<h2 class="mt-2 text-2xl font-semibold text-white">Quick actions</h2>
 
@@ -835,6 +959,92 @@
 						A quick estimate based on indexed package file sizes, not full decompressed payloads.
 					</div>
 				</div>
+			</div>
+		</section>
+
+		<section class="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+			<div class="empress-card rounded-[1.5rem] p-5">
+				<div class="display-font text-accent-300 text-xs">Intel Board</div>
+				<h2 class="mt-2 text-2xl font-semibold text-white">Packages under observation</h2>
+				<p class="text-primary-400 mt-2 text-sm">
+					These are browse-surface packages you flagged before installing. It lets Empress keep
+					package recon separate from your active runtime.
+				</p>
+
+				<div class="mt-4 space-y-3">
+					{#if intelTargets.length === 0}
+						<div
+							class="text-primary-400 border-primary-700/40 bg-primary-950/55 rounded-2xl border px-4 py-4 text-sm"
+						>
+							No remote intel targets yet. Add one from the browse details panel to keep it here.
+						</div>
+					{:else}
+						{#each intelTargets as target (target.uuid)}
+							<div class="border-primary-700/40 bg-primary-950/55 rounded-2xl border px-4 py-3">
+								<div class="flex items-start justify-between gap-3">
+									<div>
+										<div class="font-semibold text-white">{target.name}</div>
+										<div class="text-primary-400 mt-1 text-sm">
+											{target.author ?? 'Unknown author'}
+											{#if target.version}
+												<span class="text-primary-600 mx-1">/</span>
+												{target.version}
+											{/if}
+											<span class="text-primary-600 mx-1">/</span>
+											marked {relativeTime(target.notedAt)} ago
+										</div>
+									</div>
+
+									<button
+										class="border-primary-600/45 hover:bg-primary-900/70 rounded-full border px-3 py-1 text-xs tracking-[0.14em] uppercase text-white transition-colors"
+										onclick={() => removeIntelTarget(target.uuid)}
+									>
+										Remove
+									</button>
+								</div>
+							</div>
+						{/each}
+					{/if}
+				</div>
+			</div>
+
+			<div class="empress-card rounded-[1.5rem] p-5">
+				<div class="display-font text-primary-300 text-xs">Baseline Drift</div>
+				<h2 class="mt-2 text-2xl font-semibold text-white">Snapshot delta</h2>
+
+				{#if latestSnapshot === null || snapshotDrift === null}
+					<div
+						class="text-primary-400 border-primary-700/40 bg-primary-950/55 mt-4 rounded-2xl border px-4 py-4 text-sm"
+					>
+						Capture a baseline snapshot first, then Empress will show exactly what changed since
+						that checkpoint.
+					</div>
+				{:else}
+					<div class="mt-4 rounded-2xl border border-primary-700/40 bg-primary-950/55 p-4">
+						<div class="text-primary-300 text-sm">Current comparison target</div>
+						<div class="mt-1 text-xl font-semibold text-white">{latestSnapshot.name}</div>
+						<div class="text-primary-400 mt-1 text-sm">
+							{latestSnapshot.mods.length} mod{latestSnapshot.mods.length === 1 ? '' : 's'}
+							<span class="text-primary-600 mx-1">/</span>
+							captured {relativeTime(latestSnapshot.createdAt)} ago
+						</div>
+					</div>
+
+					<div class="mt-4 grid gap-3 md:grid-cols-3">
+						<div class="rounded-2xl border border-emerald-500/20 bg-emerald-950/12 px-4 py-3">
+							<div class="text-emerald-200 text-sm">Added</div>
+							<div class="mt-1 text-2xl font-semibold text-white">{snapshotDrift.added.length}</div>
+						</div>
+						<div class="rounded-2xl border border-accent-500/20 bg-accent-950/12 px-4 py-3">
+							<div class="text-accent-200 text-sm">Removed</div>
+							<div class="mt-1 text-2xl font-semibold text-white">{snapshotDrift.removed.length}</div>
+						</div>
+						<div class="rounded-2xl border border-primary-500/20 bg-primary-950/18 px-4 py-3">
+							<div class="text-primary-200 text-sm">Changed</div>
+							<div class="mt-1 text-2xl font-semibold text-white">{snapshotDrift.changed.length}</div>
+						</div>
+					</div>
+				{/if}
 			</div>
 		</section>
 	</div>

@@ -6,10 +6,10 @@ It began from the GPL-licensed Gale codebase and is being pushed into a more dis
 
 ## What Empress Adds
 
-- An Empress Ops Center with profile readiness scoring, package intel, and local "War Notes"
-- Rust-side app identity updates for the Empress fork
 - Full Empress branding across the desktop app
 - A darker red-and-blue visual theme with refreshed desktop icons
+- An Empress Ops Center with profile readiness scoring, package intel, and local "War Notes"
+- Rust-side app identity updates for the Empress fork
 - Hosted updater and profile sync disabled so this fork does not depend on upstream infrastructure
 
 More detail lives in [EMPRESS_CHANGES.md](./EMPRESS_CHANGES.md).

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import NavbarLink from './NavbarLink.svelte';
-	import { m } from '$lib/paraglide/messages';
 	import { brand } from '$lib/brand';
 
 	const links = [
@@ -12,27 +11,27 @@
 		{
 			to: '/',
 			icon: 'mdi:account-circle',
-			tooltip: m.navBar_link_profile()
+			tooltip: 'Arsenal'
 		},
 		{
 			to: '/browse',
 			icon: 'mdi:store-search',
-			tooltip: m.navBar_link_browse()
+			tooltip: 'Recon'
 		},
 		{
 			to: '/config',
 			icon: 'mdi:file-cog',
-			tooltip: m.navBar_link_config()
+			tooltip: 'Patching'
 		},
 		{
 			to: '/modpack',
 			icon: 'mdi-package-variant',
-			tooltip: m.navBar_link_modpack()
+			tooltip: 'Forge'
 		},
 		{
 			to: '/prefs',
 			icon: 'mdi:cog',
-			tooltip: m.navBar_link_prefs()
+			tooltip: 'Control'
 		}
 	];
 </script>

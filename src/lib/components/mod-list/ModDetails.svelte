@@ -1,7 +1,12 @@
 <script lang="ts">
 	import Dialog from '$lib/components/ui/Dialog.svelte';
 	import Markdown from '$lib/components/ui/Markdown.svelte';
-	import { isTrackedMod, toggleTrackedMod } from '$lib/empress/vault';
+	import {
+		isIntelTarget,
+		isTrackedMod,
+		toggleIntelTarget,
+		toggleTrackedMod
+	} from '$lib/empress/vault';
 
 	import ModInfoDialog from '../dialogs/ModInfoDialog.svelte';
 	import ModCardList from '../ui/ModCardList.svelte';
@@ -57,10 +62,25 @@
 	]);
 
 	let readmePromise: Promise<string | null> | null = $state(null);
+	let usesWatchlist = $derived(
+		mod.enabled !== undefined || mod.isInstalled === true || mod.type === ModType.Local
+	);
 	let canTrackInOps = $derived(
 		profiles.activeId !== null &&
-			(mod.enabled !== undefined || mod.isInstalled === true || mod.type === ModType.Local)
+			profiles.activeId !== undefined &&
+			games.active?.slug !== null &&
+			games.active?.slug !== undefined
 	);
+	let trackButtonLabel = $derived(
+		usesWatchlist
+			? trackedInOps
+				? 'Remove from Ops watchlist'
+				: 'Track in Ops watchlist'
+			: trackedInOps
+				? 'Remove from intel board'
+				: 'Add to intel board'
+	);
+	let trackingBadgeLabel = $derived(usesWatchlist ? 'Tracked in Ops' : 'Intel target');
 
 	function loadTrackedState() {
 		if (!canTrackInOps) {
@@ -68,30 +88,32 @@
 			return;
 		}
 
-		trackedInOps = isTrackedMod(
-			{
-				gameSlug: games.active?.slug,
-				profileId: profiles.activeId
-			},
-			mod.uuid
-		);
+		const scope = {
+			gameSlug: games.active?.slug,
+			profileId: profiles.activeId
+		};
+
+		trackedInOps = usesWatchlist ? isTrackedMod(scope, mod.uuid) : isIntelTarget(scope, mod.uuid);
 	}
 
 	function toggleOpsTracking() {
 		if (!canTrackInOps) return;
 
-		trackedInOps = toggleTrackedMod(
-			{
-				gameSlug: games.active?.slug,
-				profileId: profiles.activeId
-			},
-			mod.uuid
-		);
+		const scope = {
+			gameSlug: games.active?.slug,
+			profileId: profiles.activeId
+		};
+
+		trackedInOps = usesWatchlist ? toggleTrackedMod(scope, mod.uuid) : toggleIntelTarget(scope, mod);
 
 		pushInfoToast({
 			message: trackedInOps
-				? `${mod.name} is now tracked in Empress Ops.`
-				: `${mod.name} was removed from the Empress Ops watchlist.`
+				? usesWatchlist
+					? `${mod.name} is now tracked in Empress Ops.`
+					: `${mod.name} was added to the Empress intel board.`
+				: usesWatchlist
+					? `${mod.name} was removed from the Empress Ops watchlist.`
+					: `${mod.name} was removed from the Empress intel board.`
 		});
 	}
 
@@ -162,7 +184,7 @@
 			{#if trackedInOps}
 				<div class="my-1 flex items-center rounded-lg bg-accent-700/80 px-3 py-1 text-white">
 					<Icon class="mr-1 text-xl" icon="mdi:target-variant" />
-					Tracked in Ops
+					{trackingBadgeLabel}
 				</div>
 			{/if}
 
@@ -248,7 +270,7 @@
 				icon={trackedInOps ? 'mdi:target-off' : 'mdi:target-variant'}
 				class="mr-2 text-lg"
 			/>
-			{trackedInOps ? 'Remove from Ops watchlist' : 'Track in Ops watchlist'}
+			{trackButtonLabel}
 		</button>
 	{/if}
 

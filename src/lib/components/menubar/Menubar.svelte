@@ -192,7 +192,7 @@
 			items: [
 				{
 					text: m.menuBar_help_item_1(),
-					onclick: () => shellOpen(brand.upstreamRepo)
+					onclick: () => shellOpen(brand.repoUrl)
 				},
 				{
 					text: m.menuBar_help_item_2(),
