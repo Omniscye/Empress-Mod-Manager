@@ -69,10 +69,14 @@
 		<Menubar />
 		<Toolbar />
 
-		<div class="relative grid grow grid-cols-[88px_minmax(0,1fr)] overflow-hidden">
-			<Navbar />
+		<div class="relative grow overflow-hidden">
+			<div class="absolute inset-y-0 left-0 z-40">
+				<Navbar />
+			</div>
 
-			{@render children?.()}
+			<div class="relative z-0 flex h-full min-w-0 overflow-hidden pl-[88px]">
+				{@render children?.()}
+			</div>
 		</div>
 
 		<Statusbar />

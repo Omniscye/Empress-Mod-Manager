@@ -111,6 +111,7 @@
 
 	let hasRefreshed = $state(false);
 	let refreshing = false;
+	let intelRailCollapsed = $state(false);
 
 	async function refresh() {
 		if (refreshing) return;
@@ -213,8 +214,8 @@
 	<title>Empress Recon | Empress Mod Manager</title>
 </svelte:head>
 
-<div class="min-w-0 h-full overflow-hidden">
-	<div class="flex w-[60%] grow flex-col overflow-hidden pt-3 pl-3">
+<div class="flex h-full min-w-0 overflow-hidden">
+	<div class="flex min-w-0 flex-1 flex-col overflow-hidden pt-3 pl-3">
 		<section class="empress-card empress-card-accent mr-4 mb-3 rounded-[1.5rem] p-5">
 			<div class="flex flex-wrap items-start justify-between gap-4">
 				<div class="max-w-3xl">
@@ -346,8 +347,33 @@
 			<InstallModButton mod={selectedMod} {install} {locked} />
 		</ModDetails>
 	{:else}
-		<aside class="border-primary-600 bg-primary-700 relative flex w-[40%] min-w-72 flex-col border-l px-6 pt-6 pb-4 text-white">
-			<div class="light-scrollbar grow overflow-x-hidden overflow-y-auto pb-2">
+		<div
+			class={[
+				'relative h-full shrink-0 overflow-visible transition-[width] duration-200 ease-out',
+				intelRailCollapsed ? 'w-0' : 'w-[clamp(21rem,30vw,29rem)]'
+			]}
+		>
+			<button
+				class="border-primary-600 bg-primary-800 hover:bg-primary-700 absolute top-6 -left-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border text-white shadow-xl transition-colors"
+				onclick={() => (intelRailCollapsed = !intelRailCollapsed)}
+				aria-label={intelRailCollapsed ? 'Show intel board' : 'Hide intel board'}
+				title={intelRailCollapsed ? 'Show intel board' : 'Hide intel board'}
+			>
+				<Icon
+					icon={intelRailCollapsed ? 'mdi:chevron-double-left' : 'mdi:chevron-double-right'}
+					class="text-xl"
+				/>
+			</button>
+
+			<aside
+				class={[
+					'border-primary-600 bg-primary-700 relative flex h-full min-w-0 flex-col border-l px-6 pt-6 pb-4 text-white transition-opacity duration-150',
+					intelRailCollapsed
+						? 'pointer-events-none opacity-0'
+						: 'pointer-events-auto opacity-100'
+				]}
+			>
+				<div class="light-scrollbar grow overflow-x-hidden overflow-y-auto pb-2">
 				<div class="display-font text-accent-300 text-xs">Recon Rail</div>
 				<h2 class="mt-2 text-3xl font-semibold text-white">Intel board</h2>
 				<p class="text-primary-300 mt-2 text-sm leading-6">
@@ -415,7 +441,8 @@
 						</div>
 					</div>
 				</div>
-			</div>
-		</aside>
+				</div>
+			</aside>
+		</div>
 	{/if}
 </div>
