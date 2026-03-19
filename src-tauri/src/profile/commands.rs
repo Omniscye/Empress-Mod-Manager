@@ -152,6 +152,19 @@ pub struct ProfileQuery {
 
 #[command]
 pub fn query_profile(args: QueryModsArgs, app: AppHandle) -> Result<ProfileQuery> {
+    build_profile_query(args, app, true)
+}
+
+#[command]
+pub fn query_profile_summary(args: QueryModsArgs, app: AppHandle) -> Result<ProfileQuery> {
+    build_profile_query(args, app, false)
+}
+
+fn build_profile_query(
+    args: QueryModsArgs,
+    app: AppHandle,
+    include_updates: bool,
+) -> Result<ProfileQuery> {
     let manager = app.lock_manager();
     let thunderstore = app.lock_thunderstore();
     let install_queue = app.install_queue().handle();
@@ -161,31 +174,35 @@ pub fn query_profile(args: QueryModsArgs, app: AppHandle) -> Result<ProfileQuery
     let (mods, unknown_mods) = profile.query_mods(&args, &thunderstore);
     let total_mod_count = profile.mods.len();
 
-    let updates = profile
-        .mods
-        .iter()
-        .filter_map(|profile_mod| {
-            profile
-                .check_update(profile_mod.uuid(), false, &thunderstore, &install_queue)
-                .transpose()
-        })
-        .map_ok(|update| {
-            let ignore = profile.ignored_updates.contains(&update.latest.uuid);
+    let updates = if include_updates {
+        profile
+            .mods
+            .iter()
+            .filter_map(|profile_mod| {
+                profile
+                    .check_update(profile_mod.uuid(), false, &thunderstore, &install_queue)
+                    .transpose()
+            })
+            .map_ok(|update| {
+                let ignore = profile.ignored_updates.contains(&update.latest.uuid);
 
-            FrontendAvailableUpdate {
-                full_name: update.latest.ident.clone(),
-                package_uuid: update.package.uuid,
-                version_uuid: update.latest.uuid,
-                old: update.current.parsed_version().clone(),
-                new: update.latest.parsed_version().clone(),
-                ignore,
-            }
-        })
-        .collect::<eyre::Result<Vec<_>>>()
-        .unwrap_or_else(|err| {
-            warn!("failed to check for updates: {:#}", err);
-            Vec::new()
-        });
+                FrontendAvailableUpdate {
+                    full_name: update.latest.ident.clone(),
+                    package_uuid: update.package.uuid,
+                    version_uuid: update.latest.uuid,
+                    old: update.current.parsed_version().clone(),
+                    new: update.latest.parsed_version().clone(),
+                    ignore,
+                }
+            })
+            .collect::<eyre::Result<Vec<_>>>()
+            .unwrap_or_else(|err| {
+                warn!("failed to check for updates: {:#}", err);
+                Vec::new()
+            })
+    } else {
+        Vec::new()
+    };
 
     Ok(ProfileQuery {
         mods,

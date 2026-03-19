@@ -23,6 +23,8 @@ export const setActiveGame = (slug: string) => invoke('set_active_game', { slug 
 export const getInfo = () => invoke<ManagedGameInfo>('get_profile_info');
 export const setActive = (index: number) => invoke('set_active_profile', { index });
 export const query = (args: QueryModsArgs) => invoke<ProfileQuery>('query_profile', { args });
+export const querySummary = (args: QueryModsArgs) =>
+	invoke<ProfileQuery>('query_profile_summary', { args });
 export const isModInstalled = (uuid: string) => invoke<boolean>('is_mod_installed', { uuid });
 export const create = (name: string, overridePath: string | null) =>
 	invoke('create_profile', { name, overridePath });

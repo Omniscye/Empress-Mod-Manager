@@ -45,22 +45,24 @@
 	<Tooltip.Trigger class={triggerClass} {disabled}>
 		{@render children?.()}
 	</Tooltip.Trigger>
-	<Tooltip.Content forceMount {sideOffset} {side}>
-		{#snippet child({ wrapperProps, props, open })}
-			<div {...wrapperProps}>
-				{#if open}
-					<div
-						class="border-primary-600 bg-primary-800 text-primary-300 relative z-50 max-w-lg rounded-lg border px-4 py-2 shadow-md"
-						{...props}
-						in:fly={dropInTo(distance)}
-						out:fade={dropOutFrom(distance)}
-					>
-						{#if tooltip}{@render tooltip()}{:else}
-							{text}
-						{/if}
-					</div>
-				{/if}
-			</div>
-		{/snippet}
-	</Tooltip.Content>
+	<Tooltip.Portal>
+		<Tooltip.Content forceMount {sideOffset} {side}>
+			{#snippet child({ wrapperProps, props, open })}
+				<div {...wrapperProps}>
+					{#if open}
+						<div
+							class="border-primary-600 bg-primary-800 text-primary-300 relative z-[250] max-w-lg rounded-lg border px-4 py-2 shadow-md"
+							{...props}
+							in:fly={dropInTo(distance)}
+							out:fade={dropOutFrom(distance)}
+						>
+							{#if tooltip}{@render tooltip()}{:else}
+								{text}
+							{/if}
+						</div>
+					{/if}
+				</div>
+			{/snippet}
+		</Tooltip.Content>
+	</Tooltip.Portal>
 </Tooltip.Root>

@@ -4,10 +4,13 @@ use std::{
 };
 
 use eyre::{bail, Context, OptionExt, Result};
-use tracing::info;
+use tracing::{info, warn};
 
 use crate::{
-    game::{platform::Platform, Game},
+    game::{
+        platform::{Platform, Steam},
+        Game,
+    },
     prefs::Prefs,
     util::fs::PathExt,
 };
@@ -168,12 +171,198 @@ fn steam_game_dir(game: Game) -> Result<PathBuf> {
         bail!("{} is not available on Steam", game.slug);
     };
 
-    let steam_dir = steamlocate::SteamDir::locate().context("failed to find steam install")?;
-    let (app, lib) = steam_dir
-        .find_app(steam.id)?
-        .ok_or_eyre("could not find app in steam library, is the game not installed?")?;
+    match steamlocate::SteamDir::locate() {
+        Ok(steam_dir) => match steam_dir.find_app(steam.id)? {
+            Some((app, lib)) => return Ok(lib.resolve_app_dir(&app)),
+            None => warn!(
+                "steamlocate did not find app {} for {}, falling back to manual library detection",
+                steam.id, game.slug
+            ),
+        },
+        Err(err) => warn!(
+            "failed to find steam install via steamlocate for {}: {err:#}",
+            game.slug
+        ),
+    }
 
-    Ok(lib.resolve_app_dir(&app))
+    #[cfg(windows)]
+    {
+        return locate_steam_game_dir_fallback(game, steam);
+    }
+
+    #[cfg(not(windows))]
+    {
+        bail!("could not find app in steam library, is the game not installed?");
+    }
+}
+
+#[cfg(windows)]
+fn locate_steam_game_dir_fallback(game: Game, steam: &Steam<'_>) -> Result<PathBuf> {
+    let mut steamapps_dirs = Vec::new();
+    let mut seen = std::collections::BTreeSet::new();
+
+    if let Ok(install_dir) = read_steam_registry() {
+        push_steamapps_dir(
+            &mut steamapps_dirs,
+            &mut seen,
+            install_dir.join("steamapps"),
+        );
+
+        for library in read_steam_library_paths(&install_dir).unwrap_or_default() {
+            push_steamapps_dir(&mut steamapps_dirs, &mut seen, library.join("steamapps"));
+        }
+    }
+
+    for drive in ('C'..='Z').map(|letter| PathBuf::from(format!("{letter}:\\"))) {
+        if !drive.is_dir() {
+            continue;
+        }
+
+        push_steamapps_dir(
+            &mut steamapps_dirs,
+            &mut seen,
+            drive.join("SteamLibrary").join("steamapps"),
+        );
+        push_steamapps_dir(
+            &mut steamapps_dirs,
+            &mut seen,
+            drive.join("Steam").join("steamapps"),
+        );
+        push_steamapps_dir(
+            &mut steamapps_dirs,
+            &mut seen,
+            drive
+                .join("Program Files (x86)")
+                .join("Steam")
+                .join("steamapps"),
+        );
+        push_steamapps_dir(
+            &mut steamapps_dirs,
+            &mut seen,
+            drive.join("Program Files").join("Steam").join("steamapps"),
+        );
+    }
+
+    for steamapps_dir in &steamapps_dirs {
+        if let Some(path) = resolve_manifest_install_dir(steamapps_dir, steam.id) {
+            info!(
+                "found {} via Steam manifest fallback at {}",
+                game.slug,
+                path.display()
+            );
+            return Ok(path);
+        }
+    }
+
+    for steamapps_dir in &steamapps_dirs {
+        for dir_name in steam_dir_name_candidates(game, steam) {
+            let candidate = steamapps_dir.join("common").join(&dir_name);
+            if candidate.is_dir() {
+                info!(
+                    "found {} via Steam directory-name fallback at {}",
+                    game.slug,
+                    candidate.display()
+                );
+                return Ok(candidate);
+            }
+        }
+    }
+
+    bail!(
+        "could not find app in steam library, is the game not installed? You may need to set a location override in settings"
+    );
+}
+
+#[cfg(windows)]
+fn push_steamapps_dir(
+    dirs: &mut Vec<PathBuf>,
+    seen: &mut std::collections::BTreeSet<String>,
+    path: PathBuf,
+) {
+    if !path.join("common").is_dir() {
+        return;
+    }
+
+    let key = path.to_string_lossy().to_lowercase();
+    if seen.insert(key) {
+        dirs.push(path);
+    }
+}
+
+#[cfg(windows)]
+fn read_steam_library_paths(install_dir: &Path) -> Result<Vec<PathBuf>> {
+    let path = install_dir.join("steamapps").join("libraryfolders.vdf");
+    let content = std::fs::read_to_string(&path)
+        .with_context(|| format!("failed to read {}", path.display()))?;
+    let mut libraries = Vec::new();
+
+    for line in content.lines() {
+        let fields = quoted_fields(line);
+        if fields.first().copied() != Some("path") {
+            continue;
+        }
+
+        let Some(raw_path) = fields.get(1) else {
+            continue;
+        };
+
+        let library = PathBuf::from(raw_path.replace("\\\\", "\\"));
+        if library.is_dir() {
+            libraries.push(library);
+        }
+    }
+
+    Ok(libraries)
+}
+
+#[cfg(windows)]
+fn resolve_manifest_install_dir(steamapps_dir: &Path, app_id: u32) -> Option<PathBuf> {
+    let manifest_path = steamapps_dir.join(format!("appmanifest_{app_id}.acf"));
+    let content = std::fs::read_to_string(&manifest_path).ok()?;
+
+    for line in content.lines() {
+        let fields = quoted_fields(line);
+        if fields.first().copied() != Some("installdir") {
+            continue;
+        }
+
+        let install_dir = steamapps_dir.join("common").join(fields.get(1)?);
+        if install_dir.is_dir() {
+            return Some(install_dir);
+        }
+    }
+
+    None
+}
+
+#[cfg(windows)]
+fn steam_dir_name_candidates(game: Game, steam: &Steam<'_>) -> Vec<String> {
+    let mut names: Vec<String> = Vec::new();
+
+    for candidate in [
+        steam.dir_name,
+        Some(game.r2_dir_name.as_ref()),
+        Some(game.name),
+        Some(game.slug.as_ref()),
+    ] {
+        let Some(candidate) = candidate else {
+            continue;
+        };
+
+        let trimmed = candidate.trim();
+        if trimmed.is_empty() || names.iter().any(|name| name.eq_ignore_ascii_case(trimmed)) {
+            continue;
+        }
+
+        names.push(trimmed.to_string());
+    }
+
+    names
+}
+
+#[cfg(windows)]
+fn quoted_fields(line: &str) -> Vec<&str> {
+    line.split('"').skip(1).step_by(2).collect()
 }
 
 #[cfg(windows)]

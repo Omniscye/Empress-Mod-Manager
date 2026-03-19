@@ -149,9 +149,7 @@
 		if (profiles.active === null) return;
 
 		const name =
-			ritualName.trim().length > 0
-				? ritualName.trim()
-				: `Ritual ${vault.launchRituals.length + 1}`;
+			ritualName.trim().length > 0 ? ritualName.trim() : `Ritual ${vault.launchRituals.length + 1}`;
 
 		vault.launchRituals = [
 			createLaunchRitual(name, profiles.active.customArgs, profiles.active.customArgsEnabled),
@@ -214,6 +212,7 @@
 	async function refreshIntel() {
 		if (profiles.active === null) {
 			intel = emptyQuery;
+			error = null;
 			loading = false;
 			return;
 		}
@@ -222,7 +221,7 @@
 		loading = true;
 
 		try {
-			const result = await api.profile.query({
+			const result = await api.profile.querySummary({
 				searchTerm: '',
 				includeCategories: [],
 				excludeCategories: [],
@@ -282,10 +281,15 @@
 			.filter((mod): mod is Mod => mod !== null)
 	);
 	let intelTargets = $derived.by(
-		() => vault.intelTargets.filter((target) => !trackedMods.some((mod) => mod.uuid === target.uuid)) as EmpressIntelTarget[]
+		() =>
+			vault.intelTargets.filter(
+				(target) => !trackedMods.some((mod) => mod.uuid === target.uuid)
+			) as EmpressIntelTarget[]
 	);
 	let activeRisk = $derived.by(
-		() => empressRiskOptions.find((option) => option.value === vault.dossier.risk) ?? empressRiskOptions[0]
+		() =>
+			empressRiskOptions.find((option) => option.value === vault.dossier.risk) ??
+			empressRiskOptions[0]
 	);
 	let displayProfileName = $derived.by(
 		() => vault.dossier.codename || profiles.active?.name || 'No profile active'
@@ -427,7 +431,7 @@
 
 			<div class="empress-card rounded-3xl p-5">
 				<div class="display-font text-primary-300 text-xs">Updates Waiting</div>
-				<div class="mt-3 text-4xl font-semibold text-white">{intel.updates.length}</div>
+				<div class="mt-3 text-4xl font-semibold text-white">{outdatedMods.length}</div>
 				<p class="text-primary-400 mt-2 text-sm">Packages with newer versions on Thunderstore.</p>
 			</div>
 
@@ -554,8 +558,8 @@
 					<div class="display-font text-accent-300 text-xs">Dossier</div>
 					<h2 class="mt-2 text-2xl font-semibold text-white">Profile identity</h2>
 					<p class="text-primary-400 mt-2 text-sm">
-						Give this loadout its own codename, risk rating, and purpose so it feels like an
-						Empress operation instead of a generic profile slot.
+						Give this loadout its own codename, risk rating, and purpose so it feels like an Empress
+						operation instead of a generic profile slot.
 					</p>
 
 					<div class="mt-4 grid gap-3">
@@ -656,7 +660,8 @@
 							<div>
 								<div class="text-primary-300 text-sm">Active profile args</div>
 								<div class="mt-1 text-xl font-semibold text-white">
-									{profiles.active?.customArgs.length ?? 0} item{profiles.active?.customArgs.length === 1
+									{profiles.active?.customArgs.length ?? 0} item{profiles.active?.customArgs
+										.length === 1
 										? ''
 										: 's'}
 								</div>
@@ -718,7 +723,7 @@
 												Overwrite
 											</button>
 											<button
-												class="border-red-500/35 hover:bg-red-950/30 rounded-full border px-3 py-1.5 text-sm text-white transition-colors"
+												class="rounded-full border border-red-500/35 px-3 py-1.5 text-sm text-white transition-colors hover:bg-red-950/30"
 												onclick={() => deleteRitual(ritual.id)}
 											>
 												Delete
@@ -757,18 +762,18 @@
 						{#if latestSnapshot && snapshotDrift}
 							<div class="mt-4 grid gap-3 md:grid-cols-3">
 								<div class="rounded-2xl border border-emerald-500/20 bg-emerald-950/12 px-4 py-3">
-									<div class="text-emerald-200 text-sm">Added since baseline</div>
+									<div class="text-sm text-emerald-200">Added since baseline</div>
 									<div class="mt-1 text-2xl font-semibold text-white">
 										{snapshotDrift.added.length}
 									</div>
 								</div>
-								<div class="rounded-2xl border border-accent-500/20 bg-accent-950/12 px-4 py-3">
+								<div class="border-accent-500/20 bg-accent-950/12 rounded-2xl border px-4 py-3">
 									<div class="text-accent-200 text-sm">Removed since baseline</div>
 									<div class="mt-1 text-2xl font-semibold text-white">
 										{snapshotDrift.removed.length}
 									</div>
 								</div>
-								<div class="rounded-2xl border border-primary-500/20 bg-primary-950/18 px-4 py-3">
+								<div class="border-primary-500/20 bg-primary-950/18 rounded-2xl border px-4 py-3">
 									<div class="text-primary-200 text-sm">Changed versions or state</div>
 									<div class="mt-1 text-2xl font-semibold text-white">
 										{snapshotDrift.changed.length}
@@ -800,7 +805,7 @@
 										</div>
 
 										<button
-											class="border-red-500/35 hover:bg-red-950/30 rounded-full border px-3 py-1.5 text-sm text-white transition-colors"
+											class="rounded-full border border-red-500/35 px-3 py-1.5 text-sm text-white transition-colors hover:bg-red-950/30"
 											onclick={() => deleteSnapshot(snapshot.id)}
 										>
 											Delete
@@ -885,7 +890,7 @@
 									</div>
 
 									<button
-										class="border-primary-600/45 hover:bg-primary-900/70 rounded-full border px-3 py-1 text-xs tracking-[0.14em] uppercase text-white transition-colors"
+										class="border-primary-600/45 hover:bg-primary-900/70 rounded-full border px-3 py-1 text-xs tracking-[0.14em] text-white uppercase transition-colors"
 										onclick={() => removeTrackedMod(mod.uuid)}
 									>
 										Remove
@@ -996,7 +1001,7 @@
 									</div>
 
 									<button
-										class="border-primary-600/45 hover:bg-primary-900/70 rounded-full border px-3 py-1 text-xs tracking-[0.14em] uppercase text-white transition-colors"
+										class="border-primary-600/45 hover:bg-primary-900/70 rounded-full border px-3 py-1 text-xs tracking-[0.14em] text-white uppercase transition-colors"
 										onclick={() => removeIntelTarget(target.uuid)}
 									>
 										Remove
@@ -1020,7 +1025,7 @@
 						that checkpoint.
 					</div>
 				{:else}
-					<div class="mt-4 rounded-2xl border border-primary-700/40 bg-primary-950/55 p-4">
+					<div class="border-primary-700/40 bg-primary-950/55 mt-4 rounded-2xl border p-4">
 						<div class="text-primary-300 text-sm">Current comparison target</div>
 						<div class="mt-1 text-xl font-semibold text-white">{latestSnapshot.name}</div>
 						<div class="text-primary-400 mt-1 text-sm">
@@ -1032,16 +1037,20 @@
 
 					<div class="mt-4 grid gap-3 md:grid-cols-3">
 						<div class="rounded-2xl border border-emerald-500/20 bg-emerald-950/12 px-4 py-3">
-							<div class="text-emerald-200 text-sm">Added</div>
+							<div class="text-sm text-emerald-200">Added</div>
 							<div class="mt-1 text-2xl font-semibold text-white">{snapshotDrift.added.length}</div>
 						</div>
-						<div class="rounded-2xl border border-accent-500/20 bg-accent-950/12 px-4 py-3">
+						<div class="border-accent-500/20 bg-accent-950/12 rounded-2xl border px-4 py-3">
 							<div class="text-accent-200 text-sm">Removed</div>
-							<div class="mt-1 text-2xl font-semibold text-white">{snapshotDrift.removed.length}</div>
+							<div class="mt-1 text-2xl font-semibold text-white">
+								{snapshotDrift.removed.length}
+							</div>
 						</div>
-						<div class="rounded-2xl border border-primary-500/20 bg-primary-950/18 px-4 py-3">
+						<div class="border-primary-500/20 bg-primary-950/18 rounded-2xl border px-4 py-3">
 							<div class="text-primary-200 text-sm">Changed</div>
-							<div class="mt-1 text-2xl font-semibold text-white">{snapshotDrift.changed.length}</div>
+							<div class="mt-1 text-2xl font-semibold text-white">
+								{snapshotDrift.changed.length}
+							</div>
 						</div>
 					</div>
 				{/if}

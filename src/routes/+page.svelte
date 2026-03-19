@@ -193,7 +193,7 @@
 		refreshingSummary = true;
 
 		try {
-			summary = await api.profile.query({
+			summary = await api.profile.querySummary({
 				searchTerm: '',
 				includeCategories: [],
 				excludeCategories: [],
@@ -446,7 +446,8 @@
 								{vault.dossier.codename || profiles.active?.name || 'No active profile'}
 							</h1>
 							<div class="text-primary-300 mt-1 text-sm">
-								{profiles.active?.name ?? 'Select or create a profile to start commanding a loadout.'}
+								{profiles.active?.name ??
+									'Select or create a profile to start commanding a loadout.'}
 							</div>
 						</div>
 						<span class={['empress-badge border', riskTone(vault.dossier.risk)]}>
@@ -479,22 +480,22 @@
 			</div>
 
 			<div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-				<div class="rounded-2xl border border-primary-700/45 bg-primary-950/55 px-4 py-4">
+				<div class="border-primary-700/45 bg-primary-950/55 rounded-2xl border px-4 py-4">
 					<div class="display-font text-primary-300 text-[0.68rem]">Installed</div>
 					<div class="mt-2 text-3xl font-semibold text-white">{summary.totalModCount}</div>
 					<div class="text-primary-400 mt-1 text-sm">Packages currently bound to this loadout.</div>
 				</div>
-				<div class="rounded-2xl border border-primary-700/45 bg-primary-950/55 px-4 py-4">
+				<div class="border-primary-700/45 bg-primary-950/55 rounded-2xl border px-4 py-4">
 					<div class="display-font text-primary-300 text-[0.68rem]">Live</div>
 					<div class="mt-2 text-3xl font-semibold text-white">{enabledCount}</div>
 					<div class="text-primary-400 mt-1 text-sm">Enabled and ready to enter the runtime.</div>
 				</div>
-				<div class="rounded-2xl border border-accent-700/35 bg-accent-950/18 px-4 py-4">
+				<div class="border-accent-700/35 bg-accent-950/18 rounded-2xl border px-4 py-4">
 					<div class="display-font text-accent-300 text-[0.68rem]">Upgrades</div>
 					<div class="mt-2 text-3xl font-semibold text-white">{viewCounts.updates}</div>
 					<div class="text-primary-400 mt-1 text-sm">Packages with fresher versions available.</div>
 				</div>
-				<div class="rounded-2xl border border-primary-700/45 bg-primary-950/55 px-4 py-4">
+				<div class="border-primary-700/45 bg-primary-950/55 rounded-2xl border px-4 py-4">
 					<div class="display-font text-primary-300 text-[0.68rem]">Tracked</div>
 					<div class="mt-2 text-3xl font-semibold text-white">{viewCounts.tracked}</div>
 					<div class="text-primary-400 mt-1 text-sm">Mods flagged in the Empress watchlist.</div>
@@ -514,7 +515,7 @@
 					>
 						<Icon icon={view.icon} class="text-base" />
 						<span>{view.label}</span>
-						<span class="rounded-full bg-black/20 px-2 py-0.5 text-xs text-primary-100">
+						<span class="text-primary-100 rounded-full bg-black/20 px-2 py-0.5 text-xs">
 							{viewCounts[view.key]}
 						</span>
 					</button>
@@ -594,7 +595,9 @@
 			{/if}
 		</ModDetails>
 	{:else}
-		<aside class="border-primary-600 bg-primary-700 relative flex w-[40%] min-w-72 flex-col border-l px-6 pt-6 pb-4 text-white">
+		<aside
+			class="border-primary-600 bg-primary-700 relative flex w-[40%] min-w-72 flex-col border-l px-6 pt-6 pb-4 text-white"
+		>
 			<div class="light-scrollbar grow overflow-x-hidden overflow-y-auto pb-2">
 				<div class="display-font text-accent-300 text-xs">Command Rail</div>
 				<h2 class="mt-2 text-3xl font-semibold text-white">Empress sidecar</h2>
@@ -604,7 +607,7 @@
 				</p>
 
 				<div class="mt-5 grid gap-3">
-					<div class="rounded-[1.4rem] border border-primary-700/45 bg-primary-950/55 p-4">
+					<div class="border-primary-700/45 bg-primary-950/55 rounded-[1.4rem] border p-4">
 						<div class="display-font text-primary-300 text-[0.68rem]">Profile Dossier</div>
 						<div class="mt-2 text-xl font-semibold text-white">
 							{vault.dossier.codename || 'Unnamed operation'}
@@ -625,37 +628,43 @@
 						</div>
 					</div>
 
-					<div class="rounded-[1.4rem] border border-primary-700/45 bg-primary-950/55 p-4">
+					<div class="border-primary-700/45 bg-primary-950/55 rounded-[1.4rem] border p-4">
 						<div class="display-font text-primary-300 text-[0.68rem]">Empress Systems</div>
 						<div class="mt-4 grid gap-3 sm:grid-cols-3">
-							<div class="rounded-2xl border border-primary-700/40 bg-black/10 px-3 py-3">
+							<div class="border-primary-700/40 rounded-2xl border bg-black/10 px-3 py-3">
 								<div class="text-primary-300 text-xs">Launch rituals</div>
-								<div class="mt-1 text-2xl font-semibold text-white">{vault.launchRituals.length}</div>
+								<div class="mt-1 text-2xl font-semibold text-white">
+									{vault.launchRituals.length}
+								</div>
 							</div>
-							<div class="rounded-2xl border border-primary-700/40 bg-black/10 px-3 py-3">
+							<div class="border-primary-700/40 rounded-2xl border bg-black/10 px-3 py-3">
 								<div class="text-primary-300 text-xs">Intel targets</div>
-								<div class="mt-1 text-2xl font-semibold text-white">{vault.intelTargets.length}</div>
+								<div class="mt-1 text-2xl font-semibold text-white">
+									{vault.intelTargets.length}
+								</div>
 							</div>
-							<div class="rounded-2xl border border-primary-700/40 bg-black/10 px-3 py-3">
+							<div class="border-primary-700/40 rounded-2xl border bg-black/10 px-3 py-3">
 								<div class="text-primary-300 text-xs">Snapshots</div>
 								<div class="mt-1 text-2xl font-semibold text-white">{vault.snapshots.length}</div>
 							</div>
 						</div>
 					</div>
 
-					<div class="rounded-[1.4rem] border border-primary-700/45 bg-primary-950/55 p-4">
+					<div class="border-primary-700/45 bg-primary-950/55 rounded-[1.4rem] border p-4">
 						<div class="display-font text-accent-300 text-[0.68rem]">Ops Watchlist</div>
 						<div class="mt-2 text-xl font-semibold text-white">Tracked pressure points</div>
 
 						<div class="mt-4 space-y-3">
 							{#if trackedSummaryMods.length === 0}
-								<div class="text-primary-400 rounded-2xl border border-primary-700/35 bg-black/10 px-4 py-4 text-sm">
+								<div
+									class="text-primary-400 border-primary-700/35 rounded-2xl border bg-black/10 px-4 py-4 text-sm"
+								>
 									Track mods from the details panel and they will appear here as part of your
 									Empress watchlist.
 								</div>
 							{:else}
 								{#each trackedSummaryMods as mod (mod.uuid)}
-									<div class="rounded-2xl border border-primary-700/35 bg-black/10 px-4 py-3">
+									<div class="border-primary-700/35 rounded-2xl border bg-black/10 px-4 py-3">
 										<div class="flex items-start justify-between gap-3">
 											<div>
 												<div class="font-semibold text-white">{mod.name}</div>
@@ -668,7 +677,9 @@
 												</div>
 											</div>
 											{#if isOutdated(mod)}
-												<span class="rounded-full border border-accent-500/35 bg-accent-950/24 px-2.5 py-1 text-xs uppercase tracking-[0.16em] text-accent-200">
+												<span
+													class="border-accent-500/35 bg-accent-950/24 text-accent-200 rounded-full border px-2.5 py-1 text-xs tracking-[0.16em] uppercase"
+												>
 													Update
 												</span>
 											{/if}
@@ -682,7 +693,7 @@
 					<div class="grid gap-3 sm:grid-cols-2">
 						<a
 							href="/ops"
-							class="rounded-[1.2rem] border border-accent-500/30 bg-accent-950/20 px-4 py-4 transition-colors hover:bg-accent-950/30"
+							class="border-accent-500/30 bg-accent-950/20 hover:bg-accent-950/30 rounded-[1.2rem] border px-4 py-4 transition-colors"
 						>
 							<div class="font-semibold text-white">Go deeper in Ops</div>
 							<div class="text-primary-400 mt-1 text-sm">
@@ -691,7 +702,7 @@
 						</a>
 						<a
 							href="/browse"
-							class="rounded-[1.2rem] border border-primary-700/45 bg-primary-950/55 px-4 py-4 transition-colors hover:bg-primary-900/70"
+							class="border-primary-700/45 bg-primary-950/55 hover:bg-primary-900/70 rounded-[1.2rem] border px-4 py-4 transition-colors"
 						>
 							<div class="font-semibold text-white">Scout fresh packages</div>
 							<div class="text-primary-400 mt-1 text-sm">

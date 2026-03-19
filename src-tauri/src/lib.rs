@@ -44,7 +44,10 @@ fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if let Err(err) = app.deep_link().register("gale") {
-        warn!("failed to register legacy gale deep link protocol: {:#}", err);
+        warn!(
+            "failed to register legacy gale deep link protocol: {:#}",
+            err
+        );
     }
 
     if let Err(err) = app.deep_link().register("empress") {
@@ -125,6 +128,7 @@ pub fn run() {
             profile::commands::set_active_profile,
             profile::commands::is_mod_installed,
             profile::commands::query_profile,
+            profile::commands::query_profile_summary,
             profile::commands::get_dependants,
             profile::commands::create_profile,
             profile::commands::delete_profile,

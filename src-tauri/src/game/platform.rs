@@ -17,8 +17,10 @@ pub enum Platform {
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct Steam {
+pub struct Steam<'a> {
     pub id: u32,
+    #[serde(default)]
+    pub dir_name: Option<&'a str>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -46,7 +48,8 @@ pub struct XboxStore<'a> {
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Platforms<'a> {
-    pub steam: Option<Steam>,
+    #[serde(borrow)]
+    pub steam: Option<Steam<'a>>,
 
     #[serde(borrow)]
     pub epic_games: Option<EpicGames<'a>>,
