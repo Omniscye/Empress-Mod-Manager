@@ -1,23 +1,21 @@
 # Empress Mod Manager
 
-Empress Mod Manager is a dark red-blue Thunderstore mod manager with an Empress Ops Center, Empress branding, and its own desktop identity.
+Empress Mod Manager is a Windows desktop Thunderstore mod manager built around a darker, more tactical workflow: Arsenal for installed mods, Recon for package hunting, and Ops for full loadout control.
 
-It began from the GPL-licensed Gale codebase and is being pushed into a more distinct Empress-first direction.
+## Best Features
 
-## What Empress Adds
-
-- Full Empress branding across the desktop app
-- A darker red-and-blue visual theme with refreshed desktop icons
-- An Empress Ops Center with profile readiness scoring, package intel, and local "War Notes"
-- Rust-side app identity updates for the Empress fork
-- Hosted updater and profile sync disabled so this fork does not depend on upstream infrastructure
-
-More detail lives in [EMPRESS_CHANGES.md](./EMPRESS_CHANGES.md).
+- Empress Ops Center with readiness scoring, threat matrix, unknown package intel, War Notes, and quick command actions
+- Arsenal Command with instant slices for upgrades, dormant mods, local injections, and tracked pressure points
+- Recon Deck with scouting presets, install-state views, and an Intel Board for packages you want to watch before installing
+- Loadout Snapshots that capture a baseline and show drift when a profile changes
+- Launch Rituals for saving and replaying named launch-argument presets
+- Profile Dossiers with codenames, risk posture, tags, and mission briefs
+- Ops Watchlist for important installed mods you want to monitor closely
 
 ## Current Status
 
 - Windows desktop builds are working
-- Legacy `gale://` deep links are still accepted for compatibility with older links
+- `setup.exe` and `.msi` release bundles are available
 - Auto-update is intentionally disabled
 - Hosted sync is intentionally disabled until Empress has its own backend
 
@@ -39,13 +37,20 @@ corepack pnpm build
 corepack pnpm tauri build
 ```
 
-## License
+## Branding
 
-This project is a modified fork of Gale and is distributed under the GNU GPL v3.0.
+- Dark red-and-blue command-deck theme across the desktop app
+- Empress logo, icons, and desktop identity
+- Empress-first shell with Arsenal, Recon, Ops, Forge, and Control surfaces
+
+## More Detail
+
+More detail lives in [EMPRESS_CHANGES.md](./EMPRESS_CHANGES.md).
+
+## License And Attribution
+
+This project is distributed under the GNU GPL v3.0.
 
 - See [LICENSE.md](./LICENSE.md) for the license text
 - See [NOTICE.md](./NOTICE.md) for fork attribution and distribution notes
-
-## Attribution
-
-Empress Mod Manager is based on [Gale](https://github.com/Kesomannen/gale) by Kesomannen.
+- Empress Mod Manager began from the GPL-licensed [Gale](https://github.com/Kesomannen/gale) codebase by Kesomannen
