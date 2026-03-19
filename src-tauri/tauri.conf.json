@@ -1,0 +1,75 @@
+{
+	"productName": "Empress Mod Manager",
+	"version": "1.13.0",
+	"identifier": "com.empress.modmanager",
+	"build": {
+		"beforeBuildCommand": "pnpm run build",
+		"beforeDevCommand": "pnpm run dev",
+		"frontendDist": "../build",
+		"devUrl": "http://localhost:5173"
+	},
+	"bundle": {
+		"active": true,
+		"category": "Game",
+		"copyright": "",
+		"targets": "all",
+		"externalBin": [],
+		"createUpdaterArtifacts": false,
+		"shortDescription": "A dark red-blue command deck for Thunderstore modding",
+		"longDescription": "",
+		"icon": [
+			"icons/32x32.png",
+			"icons/128x128.png",
+			"icons/128x128@2x.png",
+			"icons/icon.icns",
+			"icons/icon.ico"
+		],
+		"windows": {
+			"certificateThumbprint": null,
+			"digestAlgorithm": "sha256",
+			"timestampUrl": ""
+		},
+		"linux": {
+			"deb": {
+				"depends": []
+			}
+		},
+		"resources": [],
+		"fileAssociations": [
+			{
+				"ext": ["r2z"],
+				"mimeType": "application/zip"
+			}
+		]
+	},
+	"plugins": {
+		"deep-link": {
+			"desktop": {
+				"schemes": ["ror2mm", "gale", "empress"]
+			}
+		}
+	},
+	"app": {
+		"windows": [
+			{
+				"decorations": true,
+				"fullscreen": false,
+				"transparent": false,
+				"resizable": true,
+				"title": "Empress Mod Manager",
+				"width": 900,
+				"height": 700,
+				"minWidth": 800,
+				"minHeight": 600,
+				"dragDropEnabled": false
+			}
+		],
+		"security": {
+			"csp": "default-src * ipc: http://ipc.localhost; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' https://storage.ko-fi.com; font-src https://fonts.gstatic.com",
+			"assetProtocol": {
+				"enable": true,
+				"scope": ["**"]
+			}
+		}
+	}
+}

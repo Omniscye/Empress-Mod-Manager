@@ -1,0 +1,38 @@
+{
+	"identifier": "main-capability",
+	"description": "Capability for the main window",
+	"windows": ["main"],
+	"permissions": [
+		"core:default",
+		"core:window:allow-close",
+		"core:window:allow-center",
+		"core:window:allow-minimize",
+		"core:window:allow-maximize",
+		"core:window:allow-set-size",
+		"core:window:allow-set-focus",
+		"core:window:allow-is-maximized",
+		"core:window:allow-start-dragging",
+		"core:window:allow-toggle-maximize",
+		"core:window:allow-set-decorations",
+		"clipboard-manager:allow-write-text",
+		"clipboard-manager:allow-read-text",
+		"deep-link:default",
+		"dialog:default",
+		"shell:default",
+		"http:default",
+		"http:allow-fetch",
+		{
+			"identifier": "http:default",
+			"allow": [
+				{
+					"url": "https://thunderstore.io/api/*"
+				},
+				{
+					"url": "https://raw.githubusercontent.com/*"
+				}
+			],
+			"deny": []
+		},
+		"os:allow-locale"
+	]
+}
