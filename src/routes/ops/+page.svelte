@@ -74,6 +74,7 @@
 	let tagInput = $state('');
 	let loadedVaultScope = $state<{ gameSlug: string; profileId: number } | null>(null);
 	let refreshCounter = 0;
+	let intelReady = $state(false);
 
 	function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
 		return new Promise<T>((resolve, reject) => {
@@ -238,10 +239,12 @@
 			intel = emptyQuery;
 			error = null;
 			loading = false;
+			intelReady = false;
 			return;
 		}
 
 		loading = true;
+		intelReady = false;
 
 		try {
 			void api.thunderstore.stopQuerying();
@@ -267,6 +270,7 @@
 
 			intel = result;
 			error = null;
+			intelReady = true;
 		} catch (err) {
 			if (ticket !== refreshCounter) return;
 
@@ -299,7 +303,11 @@
 		profiles.active?.modCount;
 		games.active?.slug;
 		loadVault();
-		refreshIntel();
+		refreshCounter += 1;
+		intel = emptyQuery;
+		error = null;
+		loading = false;
+		intelReady = false;
 	});
 
 	beforeNavigate(() => {
@@ -372,6 +380,7 @@
 	let snapshotDrift = $derived.by(() =>
 		latestSnapshot ? diffLoadoutSnapshot(latestSnapshot, intel.mods) : null
 	);
+	let activeModCount = $derived.by(() => profiles.active?.modCount ?? 0);
 </script>
 
 <svelte:head>
@@ -461,7 +470,9 @@
 		<section class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
 			<div class="empress-card rounded-3xl p-5">
 				<div class="display-font text-primary-300 text-xs">Installed Mods</div>
-				<div class="mt-3 text-4xl font-semibold text-white">{intel.totalModCount}</div>
+				<div class="mt-3 text-4xl font-semibold text-white">
+					{intelReady ? intel.totalModCount : activeModCount}
+				</div>
 				<p class="text-primary-400 mt-2 text-sm">Enabled loadout mass across the active profile.</p>
 			</div>
 
@@ -521,6 +532,18 @@
 						class="mt-5 rounded-2xl border border-red-500/30 bg-red-950/30 px-4 py-3 text-sm text-red-100"
 					>
 						Failed to pull ops data: {error}
+					</div>
+				{:else if activeModCount === 0}
+					<div
+						class="border-primary-700/40 bg-primary-950/55 text-primary-300 mt-5 rounded-2xl border px-4 py-4"
+					>
+						No installed mods are bound to the active profile, so there is nothing to scan yet.
+					</div>
+				{:else if !intelReady}
+					<div
+						class="border-primary-700/40 bg-primary-950/55 text-primary-300 mt-5 rounded-2xl border px-4 py-4"
+					>
+						Threat Matrix is idle. Hit <span class="text-white">Refresh intel</span> when you want a deep scan.
 					</div>
 				{:else}
 					<div class="mt-5 grid gap-3 md:grid-cols-2">
