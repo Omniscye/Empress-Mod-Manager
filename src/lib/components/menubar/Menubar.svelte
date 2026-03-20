@@ -452,7 +452,7 @@
 
 <header
 	data-tauri-drag-region
-	class="bg-primary-950/75 border-primary-700/60 flex h-8 shrink-0 border-b"
+	class="bg-primary-950/75 border-primary-700/60 relative z-[120] flex h-8 shrink-0 border-b"
 	class:hidden={useNativeMenu.current}
 >
 	<Menubar.Root class="flex items-center py-1">

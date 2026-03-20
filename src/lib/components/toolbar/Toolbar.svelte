@@ -37,7 +37,7 @@
 </script>
 
 <div
-	class="border-primary-700/60 bg-primary-950/70 flex h-12 shrink-0 flex-row border-t border-b backdrop-blur-xl"
+	class="border-primary-700/60 bg-primary-950/70 relative z-[110] flex h-12 shrink-0 flex-row border-t border-b backdrop-blur-xl"
 >
 	<button
 		class="text-accent-300 hover:text-accent-200 border-primary-700/60 hover:bg-primary-900/70 display-font flex shrink-0 items-center border-r pr-8 pl-6 text-sm font-semibold"

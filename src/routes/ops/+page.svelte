@@ -387,8 +387,8 @@
 	<title>Empress Ops | Empress Mod Manager</title>
 </svelte:head>
 
-<div class="min-w-0 grow overflow-x-hidden overflow-y-auto px-5 py-4">
-	<div class="mx-auto flex w-full max-w-7xl flex-col gap-4">
+<div class="pointer-events-none min-w-0 grow overflow-x-hidden overflow-y-auto px-5 py-4">
+	<div class="pointer-events-auto mx-auto flex w-full max-w-7xl flex-col gap-4">
 		<section
 			class="empress-card empress-card-accent grid gap-4 rounded-[1.75rem] p-6 lg:grid-cols-[1.4fr_0.9fr]"
 		>
